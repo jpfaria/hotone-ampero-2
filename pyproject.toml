@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ampero2"
+version = "0.1.0"
+description = "Talk to the Hotone Ampero II Stage over USB (SysEx) without the editor: patches, scenes, knobs, models, globals, NAM/IR/CLONE uploads."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = ["mido>=1.3", "python-rtmidi>=1.5", "lzokay>=2.1"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+ampero2 = "ampero2.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["ampero2*"]
+
+[tool.setuptools.package-data]
+ampero2 = ["catalog.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

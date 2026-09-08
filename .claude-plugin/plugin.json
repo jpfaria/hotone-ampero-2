@@ -1,0 +1,9 @@
+{
+  "name": "ampero2",
+  "description": "Control a Hotone Ampero II Stage over USB from Claude: patches, scenes, knobs, models, globals, NAM/IR/CLONE uploads — no editor UI needed.",
+  "version": "0.1.0",
+  "author": {
+    "name": "João Paulo"
+  },
+  "homepage": "https://github.com/jpfaria/hotone-ampero-2"
+}
