@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ampero2"
-version = "0.1.0"
+version = "0.1.1"
 description = "Talk to the Hotone Ampero II Stage over USB (SysEx) without the editor: patches, scenes, knobs, models, globals, NAM/IR/CLONE uploads."
 readme = "README.md"
 requires-python = ">=3.10"
