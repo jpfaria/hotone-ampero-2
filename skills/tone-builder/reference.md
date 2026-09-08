@@ -4,9 +4,13 @@ Two tools, used only from the command line:
 
 - `ampero2` — the pedal. `resolve` (catalog lookup), `reamp` (USB audio through the pedal), and the
   patch commands `build_patch.py` drives. Everything about the pedal itself is in the `ampero2` skill.
-- `tone-analyzer` — the audio. `analyze` / `compare` / `eq-match` on WAV files. Override the
-  executable with `$TONE_ANALYZER`. Its interface is assumed in `scripts/analyzer.py` (see its
-  docstring); when the real CLI differs, fix that one file.
+- `tone-analyzer` — the audio (github.com/jpfaria/tone-analyzer, Python ≥ 3.11). `analyze` /
+  `compare` / `eq-match` on WAV files. Override the executable with `$TONE_ANALYZER`. Its interface
+  lives in `scripts/analyzer.py` (see its docstring); when the CLI changes, fix that one file.
+
+Setup (once): `pip install "ampero2[tone]"` (or `pipx install "git+https://github.com/jpfaria/hotone-ampero-2#egg=ampero2[tone]"`)
+installs the `reamp` audio extra and `tone-analyzer`. Check with `ampero2 resolve AMP "Fender Twin"`
+and `tone-analyzer --help` before starting a tone; missing → install, do not improvise.
 
 Scripts live in `${CLAUDE_PLUGIN_ROOT}/skills/tone-builder/scripts/` (stdlib only, Python ≥ 3.10).
 

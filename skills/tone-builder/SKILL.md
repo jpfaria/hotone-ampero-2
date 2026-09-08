@@ -11,6 +11,8 @@ yourself; `build_patch.py` resolves the researched names through `ampero2 resolv
 cannot back, applies through the `ampero2` CLI and reads the patch back. `reference.md` (next to
 this file) has the research JSON schema, the knob aliases, the command lines and the exit codes.
 
+Setup: `pip install "ampero2[tone]"` (audio extra + `tone-analyzer`); details in reference.md.
+
 **Violating the letter of these rules is violating their spirit.** "Faz rápido" changes nothing
 below: a fast wrong tone is thrown away and rebuilt slowly anyway.
 
