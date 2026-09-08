@@ -8,9 +8,9 @@ Two tools, used only from the command line:
   `compare` / `eq-match` on WAV files. Override the executable with `$TONE_ANALYZER`. Its interface
   lives in `scripts/analyzer.py` (see its docstring); when the CLI changes, fix that one file.
 
-Setup (once): `pip install "ampero2[tone]"` (or `pipx install "git+https://github.com/jpfaria/hotone-ampero-2#egg=ampero2[tone]"`)
-installs the `reamp` audio extra and `tone-analyzer`. Check with `ampero2 resolve AMP "Fender Twin"`
-and `tone-analyzer --help` before starting a tone; missing → install, do not improvise.
+Setup: `tone-analyzer` is a dependency of `ampero2` (installed with it); the re-amp loop also needs
+`pip install "ampero2[reamp]"`. Check `ampero2 resolve AMP "Fender Twin"` and `tone-analyzer --help`
+before starting a tone; missing → install, do not improvise.
 
 Scripts live in `${CLAUDE_PLUGIN_ROOT}/skills/tone-builder/scripts/` (stdlib only, Python ≥ 3.10).
 

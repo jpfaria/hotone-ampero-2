@@ -41,10 +41,11 @@ itself when you change patches with your feet. Byte-level details: [docs/protoco
 
 ## Requirements
 
-macOS (CoreMIDI through `python-rtmidi`), Python ≥ 3.10, the pedal on USB (port
+macOS (CoreMIDI through `python-rtmidi`), Python ≥ 3.11, the pedal on USB (port
 `Ampero II Stage MIDI`). The editor can stay open; it just won't show USB changes.
-Extras: `ampero2[reamp]` (USB audio: `sounddevice`, `soundfile`, `numpy`), `ampero2[tone]` (that
-plus [tone-analyzer](https://github.com/jpfaria/tone-analyzer), Python ≥ 3.11, for the tone-builder skill).
+[tone-analyzer](https://github.com/jpfaria/tone-analyzer) is installed as a dependency (the
+tone-builder skill measures with it); the extra `ampero2[reamp]` adds USB audio (`sounddevice`,
+`soundfile`, `numpy`) for re-amping.
 
 ## Claude Code plugin
 
