@@ -39,7 +39,13 @@ class Ampero:
             time.sleep(_POLL_S)
         return None
 
+    def drain(self) -> None:
+        """Discard pending frames (acks, broadcasts) so the next reply is the one we asked for."""
+        while self.receive(0.05):
+            pass
+
     def request(self, frame: bytes, timeout: float = 1.0) -> Frame:
+        self.drain()
         self.send(frame)
         reply = self.receive(timeout)
         if reply is None:
@@ -57,6 +63,7 @@ class Ampero:
 
     def request_dump(self, frame: bytes, timeout: float = 2.0) -> bytes:
         """Send a query whose answer is a chunked 0x12 dump; returns the reassembled payload."""
+        self.drain()
         self.send(frame)
         first = self.receive(timeout)
         if first is None or first.cmd != CMD_DATA:

@@ -44,7 +44,7 @@ IEEE-754 little-endian.
 | patch footswitches | 11/12 | `00 00 03 01` + `00 00 00 00` reads (12×FF + `10 0F 12 00` when unassigned); `01 00 03 01` writes 7 bytes, one per footswitch | function codes: Scene 1..5 = 1B..1F, Bank- 10, Patch+ 26, Tap Tempo 0D, Tuner 12, Looper 11, EXP 1/2 29, block A2 0C, OFF FF (other slots, Bank+, Patch- not captured) |
 | quick access | 12 | `01 00 02 01` | `[para][slot][category][code u32][param]`; empty = `[para][FF×7]` |
 | EXP target | 12 | `02 00 06 01` | `[target][exp][slot][category][code u32][param]`; empty = `[target][exp][FF×7]` (range/curve not captured) |
-| user templates | 11/12 | `04 00 00 02` lists; `02 00 00 02` `[position+4 u32][name 11 + NUL]` saves the edit buffer; `03 00 00 02` `[position+4 u32]` loads (reply `00 00 00 02` = template image) |
+| user templates | 11/12 | `04 00 00 02` lists (5 × 12 bytes: name ≤7 + NUL + 4 leftover bytes); `02 00 00 02` `[position+4 u32][name 11 + NUL]` saves the edit buffer; `03 00 00 02` `[position+4 u32]` loads (reply `00 00 00 02` = template image) |
 | `0A` query the editor sends when a block is clicked | 11 | `03 00 0A 01` | `[slot 00 00 00]` → a float that is not the knob value (660/567 seen); meaning unknown |
 
 Slots: line 1 = 0..5, line 2 = 6..11; empty slots count. Parameter index = knob order in

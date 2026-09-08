@@ -17,6 +17,13 @@
   ampero2 models AMP                 list a category's models (index, code, based on)
   ampero2 params AMP "Marshell 45"   list a model's parameters (index, default, range)
   ampero2 scene-name 1 USBSCN        rename scene 1 (max 7 chars)
+  ampero2 volume 100                 patch output volume (0-100, the value next to the speaker icon)
+  ampero2 quick-access 1 4 0         quick access para 1 = slot 4, knob 0;  quick-access 1 off  clears it
+  ampero2 exp 1 1 4 0                EXP1 target 1 = slot 4, knob 0;  exp 1 1 off  clears it
+  ampero2 templates                  list the 5 user templates;  template-save 1 NAME / template-load 1
+  ampero2 nam-rename 3 NAME          rename NAM Slot 3 (max 16 chars)
+  ampero2 ctrl 1 single / ctrl 1 fs 29   EXP/CTRL 1 function (exp|single|dual) / its single-FS code (hex)
+  ampero2 listen [seconds]           print patch changes the pedal broadcasts (footswitches), default 60 s
   ampero2 tempo 120                  patch tempo (bpm)
   ampero2 global 1                   read raw bytes of a Global Settings page (1..8)
   ampero2 global-set 1 0             set global param 1 (No Cab Mode L: 0 off, 1 cab only, 2 ir only)
@@ -42,6 +49,7 @@ from .patch import (
     parse_header,
     parse_image,
     patch_names,
+    template_names,
 )
 from .catalog import Catalog
 from .ir import USER_IR_BASE, ir_image, normalize_wav, samples_from_wav
@@ -59,6 +67,18 @@ from .protocol import (
     msg_query_global,
     msg_query_inventory,
     msg_set_global_eq,
+    msg_clear_exp_target,
+    msg_clear_quick_access,
+    msg_load_template,
+    msg_query_templates,
+    msg_rename_nam,
+    msg_save_template,
+    msg_set_control_fs_code,
+    msg_set_control_function,
+    msg_set_exp_target,
+    msg_set_patch_volume,
+    msg_set_quick_access,
+    is_patch_dump,
     msg_rename_scene,
     msg_set_footswitches,
     msg_set_global,
@@ -79,6 +99,21 @@ from .protocol import (
 
 def _hex(b: bytes) -> str:
     return " ".join(f"{x:02X}" for x in b)
+
+
+def _slot_target(dev: Ampero, slot: int) -> tuple[int, int, int]:
+    """(slot, category index, model code) of a slot in the current patch, for quick-access/EXP targets."""
+    from .patch import parse_image
+    img = parse_image(decompress_patch(dev.request_dump(msg_get_patch(_current_patch(dev)))))
+    code = img.slot_codes[slot]
+    if code is None:
+        raise SystemExit(f"slot {slot} is empty")
+    return slot, Catalog.load().by_code(code).category_index, code
+
+
+def _current_patch(dev: Ampero) -> int:
+    import struct
+    return struct.unpack("<I", reply_body(dev.request(msg_query_global(9))))[0]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -178,6 +213,49 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {band:10s} " + " ".join(f"{k}={v}" for k, v in fields.items()))
         elif cmd == "eq-set":
             dev.send(msg_set_global_eq(GLOBAL_EQ_FIELDS.index((args[0], args[1])), float(args[2])))
+        elif cmd == "volume":
+            dev.send(msg_set_patch_volume(int(args[0])))
+        elif cmd == "quick-access":
+            para = int(args[0]) - 1
+            if args[1].lower() == "off":
+                dev.send(msg_clear_quick_access(para))
+            else:
+                dev.send(msg_set_quick_access(para, *_slot_target(dev, int(args[1])), int(args[2])))
+        elif cmd == "exp":
+            exp, target = int(args[0]) - 1, int(args[1]) - 1
+            if args[2].lower() == "off":
+                dev.send(msg_clear_exp_target(exp, target))
+            else:
+                dev.send(msg_set_exp_target(exp, target, *_slot_target(dev, int(args[2])), int(args[3])))
+        elif cmd == "templates":
+            for i, name in enumerate(template_names(decode_reply(dev.request_dump(msg_query_templates())))):
+                print(f"{i + 1} {name}")
+        elif cmd == "template-save":
+            dev.send(msg_save_template(int(args[0]), args[1]))
+        elif cmd == "template-load":
+            dev.send(msg_load_template(int(args[0])))
+        elif cmd == "nam-rename":
+            dev.send(msg_rename_nam(int(args[0]) - 1, args[1]))
+        elif cmd == "ctrl":
+            ctrl = int(args[0]) - 1
+            if args[1] == "fs":
+                dev.send(msg_set_control_fs_code(ctrl, int(args[2], 16)))
+            else:
+                dev.send(msg_set_control_function(ctrl, ("exp", "single", "dual").index(args[1])))
+        elif cmd == "listen":
+            import time
+            deadline = time.monotonic() + (float(args[0]) if args else 60.0)
+            chunks = []
+            while time.monotonic() < deadline:
+                frame = dev.receive(0.5)
+                if frame is None or not is_patch_dump(frame.payload if frame.offset == 0 else chunks[0].payload if chunks else b""):
+                    continue
+                chunks.append(frame)
+                if sum(len(c.payload) for c in chunks) >= chunks[0].length:
+                    from .patch import reassemble
+                    hdr = parse_header(decompress_patch(reassemble(chunks)))
+                    print(f"patch {patch_label(hdr.index)} {hdr.name!r}", flush=True)
+                    chunks = []
         elif cmd == "global-set":
             dev.send(msg_set_global(int(args[0], 0), int(args[1]), page=int(args[2]) if len(args) > 2 else 1))
         elif cmd == "footswitches":

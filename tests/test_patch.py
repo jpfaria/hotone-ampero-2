@@ -67,3 +67,9 @@ def test_parse_global_eq_page():
     assert eq.bands["band 1"] == {"enabled": True, "freq": 100.0, "q": 0.71, "gain": 3.0}
     assert eq.bands["low cut"] == {"enabled": False, "freq": 20.0, "q": 0.71}
     assert eq.bands["high cut"]["freq"] == 20000.0
+
+
+def test_template_names_from_decoded_list():
+    from ampero2.patch import template_names
+    raw = bytes.fromhex("55534254504c0000a4460020" "55534254504c320001000000" "456d70747900ffff00000000" "456d7074790097 80fba00120".replace(" ", "") + "456d707479000000" "54c7e380")
+    assert template_names(raw) == ["USBTPL", "USBTPL2", "Empty", "Empty", "Empty"]

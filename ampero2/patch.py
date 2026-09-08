@@ -150,3 +150,11 @@ def parse_global_eq(page: bytes) -> GlobalEq:
         v = floats[1 + i]
         bands.setdefault(band, {})[field] = (v != 0.0) if field == "enabled" else round(v, 4)
     return GlobalEq(enabled=floats[0] != 0.0, bands=bands, level=floats[1 + len(GLOBAL_EQ_FIELDS)])
+
+
+TEMPLATE_SLOTS = 5
+_TEMPLATE_ENTRY = 12      # 7-char name + NUL, then 4 bytes of leftovers
+
+
+def template_names(raw: bytes) -> list[str]:
+    return [_cstr(raw, i * _TEMPLATE_ENTRY, 8) for i in range(TEMPLATE_SLOTS)]

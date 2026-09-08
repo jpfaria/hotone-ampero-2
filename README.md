@@ -12,6 +12,7 @@ ampero2 model 4 AMP "Marshell 45"   # put a model in a slot (editor catalog: amp
 ampero2 nam-upload 3 capture.nam    # NAM -> slot 3 (uses the editor's converter through ctypes)
 ampero2 ir-upload 2 cab.wav         # IR -> User IR 2
 ampero2 eq                          # Global EQ
+ampero2 listen                      # print patches the pedal broadcasts when you step on a footswitch
 ampero2                             # every command
 ```
 
