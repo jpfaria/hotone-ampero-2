@@ -40,8 +40,9 @@ ampero2 load A26-1 && ampero2 load A30-3 && ampero2 show A30-3   # reload from f
 | globals | `global N` (raw page 0-10), `global-set ID VALUE [PAGE]` (only ids in `protocol.GLOBAL_PARAMS`, e.g. `0x10 1` = No Cab L cab only, `0x04 1 8` = Bank Select wait), `ctrl 1 exp|single|dual`, `ctrl 1 fs 29` (single-FS code, hex), `eq`, `eq-set "band 1" gain 3` |
 | live | `listen [seconds]` prints the patch the pedal broadcasts when a footswitch changes it |
 
-Slot numbers, NAM/CLONE/IR/template positions, para/EXP/target numbers are 1-based on the
-CLI exactly as the editor labels them (NAM Slot 3, User IR 2, Para 1), except slots (0-based).
+NAM/CLONE/IR/template positions and para/EXP/target numbers are 1-based, exactly as the
+editor labels them (NAM Slot 3, User IR 2, Para 1). **Slots and knob indices are 0-based**:
+the first knob of a block is index 0 (`show` and `params` print them in order).
 
 ## Global Settings — hard rules (firmware hangs otherwise)
 
