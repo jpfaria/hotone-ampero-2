@@ -46,8 +46,10 @@ macOS (CoreMIDI through `python-rtmidi`), Python ≥ 3.10, the pedal on USB (por
 
 ## Claude Code plugin
 
-This repo is also a plugin marketplace. The bundled `ampero2` skill teaches the agent the
-CLI and the rules above.
+This repo is also a plugin marketplace with two skills: `ampero2` (configure the pedal: the CLI
+and the rules above) and `tone-builder` (build the tone of a song as a patch: cited gear research →
+`build_patch.py` → optional re-amp through the pedal + [tone-analyzer](https://github.com/jpfaria/tone-analyzer)
+measurement loop).
 
 ```bash
 claude plugin marketplace add jpfaria/hotone-ampero-2

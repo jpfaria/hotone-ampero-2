@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
 import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
@@ -42,10 +43,10 @@ class BuildError(SystemExit):
 
 class Runner:
     """Runs `ampero2 ...`; injectable for tests."""
-    exe = "ampero2"
+    exe = "ampero2"            # may be a command line, e.g. "python3 -m ampero2"
 
     def run(self, args: list[str]) -> tuple[int, str]:
-        p = subprocess.run([self.exe, *args], capture_output=True, text=True)
+        p = subprocess.run([*shlex.split(self.exe), *args], capture_output=True, text=True)
         return p.returncode, p.stdout + p.stderr
 
 
@@ -286,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--eq-gains", help="10 comma-separated dB values for Graphic EQ 31Hz..16kHz, capped ±6")
     ap.add_argument("--apply", nargs=2, metavar=("PATCH", "NAME"), help="push the plan into PATCH and save it as NAME")
     ap.add_argument("--overwrite", action="store_true", help="allow --apply on a patch that already has a name")
-    ap.add_argument("--ampero2", default="ampero2", help="ampero2 executable (default: ampero2 on PATH)")
+    ap.add_argument("--ampero2", default="ampero2", help='ampero2 command (default: ampero2 on PATH; e.g. "python3 -m ampero2")')
     a = ap.parse_args(argv)
     runner = Runner()
     runner.exe = a.ampero2

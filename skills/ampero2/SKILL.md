@@ -9,6 +9,8 @@ CLI + Python package speaking the pedal's SysEx protocol. `reference.md` (next t
 file) has every command with its syntax, the footswitch codes, the Global Settings ids,
 the Global EQ fields and the catalog categories — read it before composing commands.
 `ampero2` with no arguments prints the same command list.
+Want the tone of a song or artist built as a patch? That is the **tone-builder** skill; this one only
+talks to the pedal.
 
 Setup: macOS, pedal on USB (port `Ampero II Stage MIDI`). Not installed?
 `pipx install git+https://github.com/jpfaria/hotone-ampero-2` (or `pip install -e "${CLAUDE_PLUGIN_ROOT}"`).

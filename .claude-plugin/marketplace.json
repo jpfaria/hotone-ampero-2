@@ -1,14 +1,14 @@
 {
   "name": "hotone-ampero-2",
   "owner": {
-    "name": "João Paulo",
+    "name": "Jo\u00e3o Paulo",
     "url": "https://github.com/jpfaria/hotone-ampero-2"
   },
   "plugins": [
     {
       "name": "ampero2",
       "source": "./",
-      "description": "Control a Hotone Ampero II Stage over USB (SysEx) from Claude: patches, scenes, knobs, models, globals, NAM/IR/CLONE uploads. Bundles the ampero2 CLI and its skill."
+      "description": "Control a Hotone Ampero II Stage over USB (SysEx) from Claude: patches, scenes, knobs, models, globals, NAM/IR/CLONE uploads, re-amp. Two skills: ampero2 (configure the pedal) and tone-builder (a song's tone as a patch)."
     }
   ]
 }

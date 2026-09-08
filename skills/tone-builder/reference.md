@@ -1,0 +1,99 @@
+# tone-builder reference
+
+Two tools, used only from the command line:
+
+- `ampero2` — the pedal. `resolve` (catalog lookup), `reamp` (USB audio through the pedal), and the
+  patch commands `build_patch.py` drives. Everything about the pedal itself is in the `ampero2` skill.
+- `tone-analyzer` — the audio. `analyze` / `compare` / `eq-match` on WAV files. Override the
+  executable with `$TONE_ANALYZER`. Its interface is assumed in `scripts/analyzer.py` (see its
+  docstring); when the real CLI differs, fix that one file.
+
+Scripts live in `${CLAUDE_PLUGIN_ROOT}/skills/tone-builder/scripts/` (stdlib only, Python ≥ 3.10).
+
+## Research JSON
+
+Written by the agent. It carries **gear names and sources**, never catalog model names, slot
+numbers or knob indices.
+
+```json
+{
+  "song": "Gravity", "artist": "John Mayer", "role": "rhythm",
+  "id": "john_mayer_gravity_rhythm", "name": "John Mayer - Gravity (rhythm)",
+  "tempo_bpm": 66,
+  "amp":    { "name": "Dumble Overdrive Special overdrive section on", "brand": "dumble",
+              "params": { "gain": 35 }, "provenance": "sourced", "sources": ["https://…"] },
+  "drives": [ { "name": "Ibanez TS808", "brand": "ibanez", "params": { "drive": 20, "level": 60 },
+                "provenance": "sourced", "sources": ["https://…"] } ],
+  "cab":    null,
+  "fx":     [ { "type": "gate", "name": "ISP Decimator noise gate", "params": { "threshold": 38 },
+                "provenance": "unverified", "sources": [] },
+              { "type": "delay", "name": "mono analog delay",
+                "params": { "time_ms": 454, "feedback": 28, "mix": 30 },
+                "provenance": "derived", "sources": ["https://…"] } ]
+}
+```
+
+| Field | Rule |
+|---|---|
+| `amp.name` | Real amp + channel/variant words when the catalog has variants (`normal channel`, `high treble channel`, `jump`, `overdrive section on`, `vibrato channel`, `lead channel`). `resolve --strict` reports a tie as `unresolved` with the candidates: add the word the sources support. |
+| `drives[]` | One entry per pedal, signal order. `[]` = clean. Boosts resolve in `DRV` then `DYN`. |
+| `cab` | An object only when a source names the cab/speaker or the amp is a preamp. `null` for a combo: the build derives the amp's own combo cab (`provenance: derived`). No derivable cab → the build aborts `no_cab`; research the cab. |
+| `fx[].type` | `gate`, `comp`, `wah`, `mod`, `delay`, `reverb`. `volume` and `limiter` are rejected. |
+| `sources` | Real URLs you opened. Placeholders, "plausible" URLs, or citations from memory are forbidden — the gate cannot check them, you can. Empty `sources` is only allowed on the `gate`. |
+| `provenance` | `sourced` (a source states the knob values), `derived` (computed: delay time from BPM, cab from the amp), `unverified` (cited unit, knobs unknown → catalog defaults or a stated default). Absent = `unverified`. |
+| `params` | Keys are generic knob names (alias table below); values in the model's own range (usually 0–100; delay `time` in ms). Unknown keys are reported as `unmapped` and ignored. |
+
+**Knob aliases** (`params` key → model knob it lands on, first match by prefix): `gain|drive` → Gain/Drive/Sustain/Fuzz;
+`level|volume|output` → Level/Volume/Output; `tone`; `bass|low`; `mid|middle`; `treble|high`; `presence`;
+`time|time_ms` → Time; `feedback|repeats`; `mix|blend`; `depth`; `rate|speed`; `threshold`; `attack`; `release`.
+Any other key is `unmapped`. Run `ampero2 params CAT "Model"` to see a model's knobs.
+
+## Catalog rules that differ from a modeler with captures
+
+- **AMP / PRE AMP models have no speaker.** A CAB (or IR) slot is mandatory; the build enforces it.
+- The EQ slot is always `EQ "Graphic EQ"` (31 Hz … 16 kHz, −12…+12 dB, `Level` left at 50). Gains come
+  only from `tone-analyzer eq-match` (`--eq-gains`, capped ±6 dB); otherwise all 0.
+- Slot order: gate → comp → wah → drive(s) → amp → cab → eq → mod → delay → reverb, slots 0…n.
+  Scene 1 only, every slot on. Scenes, footswitches, EXP, quick access, patch volume, Global EQ:
+  not this skill — the user configures them with the `ampero2` skill afterwards.
+
+## Commands
+
+```bash
+TB=${CLAUDE_PLUGIN_ROOT}/skills/tone-builder/scripts
+python3 $TB/build_patch.py --research R.json --plan PLAN.json                 # plan only, no pedal
+python3 $TB/build_patch.py --research R.json --plan PLAN.json --apply A26-2 NAME [--overwrite] [--eq-gains g1,…,g10]
+ampero2 reamp DI.wav WET.wav [--tail S] [--mono]                              # needs input source USB OUT 3/4
+tone-analyzer analyze REF.wav --out-dir EVAL/ref                              # fingerprint.json: self_floor_pct, top_octave_dead
+tone-analyzer compare REF.wav WET.wav --out-dir EVAL/v1                       # diff.json: proximity_pct
+tone-analyzer eq-match REF.wav WET.wav --gains g1,…,g10 --bands 31,63,125,250,500,1000,2000,4000,8000,16000 --output EVAL/v1/eq_match.json
+```
+
+`build_patch.py` exit codes: `2` build aborted (`unresolved`, `uncited`, `forbidden`, `too_many`, `no_cab`
+— stderr says which and why), `4` verify mismatch after apply (`show` did not read back the plan),
+`5` the target patch already has a name and `--overwrite` was not given. It prints the `unverified`
+and `unmapped` lists on stderr: relay both to the user.
+
+`--apply` runs: `load PATCH`, `model` per slot (+ `none` on the rest), `param` per non-default knob,
+`powers 1 …`, `tempo`, `save PATCH NAME`, then reloads and `show`s to verify. Nothing else.
+
+## Re-amp precondition (validation loop)
+
+Audio goes computer → USB Output 3 → **chain A input** only when the current patch's input node
+`SOURCE` is `USB OUT 3/4` (`INPUT CH = L`). Chain A's output comes back on USB Input 1/2.
+`reamp` exits 3 with "no signal" when that is not set.
+
+Whether `SOURCE` can be set over USB is recorded in `docs/protocol.md` ("Input node SOURCE"). Until an
+`ampero2 input-source` command exists: the user sets `SOURCE = USB OUT 3/4` **once, on the touchscreen,
+in a working patch** (call it `REAMP`, slot of their choice). Build and iterate in that patch; copy
+the result to the destination at the end (`ampero2 load REAMP && ampero2 save DEST NAME`). Tell the user
+the destination inherits `SOURCE = USB OUT 3/4` and must be flipped back to `Input` on the screen.
+
+DI: the `tone-analyzer` package ships a clean DI fixture; use it unless the user gives one. Never ask the
+user to record a DI; the wet reference is the only thing you ask for.
+
+## Evaluation directory
+
+`EVAL = $HOME/.ampero2/evaluations/<artist-song-slug>/` (create it). Keep `research/<role>-v<N>.json`,
+`plan-v<N>.json`, `wet-v<N>.wav`, the analyzer out-dirs, and `eval.md` (gear research with sources,
+mapping, iteration log with the numbers, unverified params, methodology notes).
