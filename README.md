@@ -43,9 +43,24 @@ macOS (CoreMIDI through `python-rtmidi`), Python ≥ 3.10, the pedal on USB (por
 
 ## Claude Code plugin
 
-This repo is also a plugin marketplace: `claude plugin marketplace add jpfaria/hotone-ampero-2`,
-then enable `ampero2@hotone-ampero-2`. The bundled `ampero2` skill teaches the agent the CLI
-and the rules above.
+This repo is also a plugin marketplace. The bundled `ampero2` skill teaches the agent the
+CLI and the rules above.
+
+```bash
+claude plugin marketplace add jpfaria/hotone-ampero-2
+claude plugin install ampero2@hotone-ampero-2
+```
+
+Or per project, in `.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "hotone-ampero-2": { "source": { "source": "github", "repo": "jpfaria/hotone-ampero-2" } }
+  },
+  "enabledPlugins": { "ampero2@hotone-ampero-2": true }
+}
+```
 
 ## Development
 
