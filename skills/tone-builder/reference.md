@@ -12,7 +12,7 @@ Setup: `tone-analyzer` is a dependency of `ampero2` (installed with it); the re-
 `pip install "ampero2[reamp]"`. Check `ampero2 resolve AMP "Fender Twin"` and `tone-analyzer --help`
 before starting a tone; missing → install, do not improvise.
 
-Scripts live in `${CLAUDE_PLUGIN_ROOT}/skills/tone-builder/scripts/` (stdlib only, Python ≥ 3.10).
+Scripts live in `${CLAUDE_PLUGIN_ROOT}/skills/tone-builder/scripts/` (stdlib only, Python ≥ 3.11).
 
 ## Research JSON
 
