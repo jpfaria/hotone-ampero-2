@@ -208,3 +208,115 @@ def build_plan(research: dict, runner: Runner, eq_gains: list[float] | None = No
                 k.value, k.origin = g, "eq"
         slots.append(Slot(i, cat, model, role, knobs, prov, list(sources)))
     return Plan(research.get("name", research.get("id", "tone")), slots, research.get("tempo_bpm"), unverified, unmapped)
+
+
+def _fmt(v: float) -> str:
+    return f"{v:g}"
+
+
+def apply_plan(plan: Plan, patch: str, name: str, runner: Runner, overwrite: bool = False) -> list[list[str]]:
+    """Push the plan into PATCH through the ampero2 CLI; returns every command run, in order."""
+    cmds: list[list[str]] = [["patches"]]
+    _code, out = runner.run(cmds[0])
+    current = ""
+    for line in out.splitlines():
+        parts = line.split(None, 1)
+        if parts and parts[0] == patch:
+            current = parts[1].strip() if len(parts) > 1 else ""
+    if current and not overwrite:
+        print(f"{patch} is named {current!r}: pass --overwrite to replace it", file=sys.stderr)
+        raise SystemExit(5)
+    used = {s.slot for s in plan.slots}
+    seq = [["load", patch]]
+    for s in plan.slots:
+        seq.append(["model", str(s.slot), s.category, s.model])
+    for i in range(MAX_SLOTS):
+        if i not in used:
+            seq.append(["model", str(i), "none"])
+    for s in plan.slots:
+        for k in s.knobs:
+            if k.origin != "default":
+                seq.append(["param", str(s.slot), str(k.index), _fmt(k.value)])
+    seq.append(["powers", "1", *["1" if i in used else "0" for i in range(MAX_SLOTS)]])
+    if plan.tempo:
+        seq.append(["tempo", str(int(plan.tempo))])
+    seq.append(["save", patch, name[:16]])
+    for c in seq:
+        code, out = runner.run(c)
+        if code != 0:
+            raise SystemExit(f"ampero2 {' '.join(c)} failed: {out.strip()}")
+    return cmds + seq
+
+
+_SHOW = re.compile(r"^\s*slot\s+(\d+)\s+(\S+(?: \S+)?)\s+(.+?)\s+scenes=\S+\s*(.*)$")
+
+
+def verify_plan(plan: Plan, patch: str, runner: Runner) -> list[str]:
+    """Read PATCH back with `show` and list every model/knob that differs from the plan."""
+    _code, out = runner.run(["show", patch])
+    seen = {}
+    for line in out.splitlines():
+        m = _SHOW.match(line)
+        if m:
+            vals = dict(kv.split("=", 1) for kv in m[4].split() if "=" in kv)
+            seen[int(m[1])] = (m[3].strip(), vals)
+    problems = []
+    for s in plan.slots:
+        got = seen.get(s.slot)
+        if got is None or got[0] != s.model:
+            problems.append(f"slot {s.slot}: expected {s.model!r}, got {got[0] if got else 'empty'!r}")
+            continue
+        for k in s.knobs:
+            if k.origin == "default":
+                continue
+            try:
+                back = float(got[1][k.name])
+            except (KeyError, ValueError):
+                back = float("nan")
+            if not abs(back - k.value) <= 0.5:
+                problems.append(f"slot {s.slot} {k.name}: expected {k.value:g}, got {got[1].get(k.name)}")
+    return problems
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--research", required=True, type=Path)
+    ap.add_argument("--plan", type=Path, help="write the plan JSON here (default: stdout)")
+    ap.add_argument("--eq-gains", help="10 comma-separated dB values for Graphic EQ 31Hz..16kHz, capped ±6")
+    ap.add_argument("--apply", nargs=2, metavar=("PATCH", "NAME"), help="push the plan into PATCH and save it as NAME")
+    ap.add_argument("--overwrite", action="store_true", help="allow --apply on a patch that already has a name")
+    ap.add_argument("--ampero2", default="ampero2", help="ampero2 executable (default: ampero2 on PATH)")
+    a = ap.parse_args(argv)
+    runner = Runner()
+    runner.exe = a.ampero2
+    gains = [float(x) for x in a.eq_gains.split(",")] if a.eq_gains else None
+    try:
+        plan = build_plan(load_research(a.research), runner, gains)
+    except BuildError as e:
+        print("ABORT", e, file=sys.stderr)
+        return 2
+    if a.plan:
+        a.plan.write_text(plan.to_json())
+        print(f"plan -> {a.plan}")
+    else:
+        print(plan.to_json())
+    if plan.unmapped:
+        print("unmapped params (ignored):", ", ".join(plan.unmapped), file=sys.stderr)
+    if plan.unverified:
+        print("unverified params (defaults/guesses):", ", ".join(plan.unverified), file=sys.stderr)
+    if a.apply:
+        patch, name = a.apply
+        apply_plan(plan, patch, name, runner, a.overwrite)
+        runner.run(["load", "A1-2" if patch == "A1-1" else "A1-1"])
+        runner.run(["load", patch])
+        problems = verify_plan(plan, patch, runner)
+        if problems:
+            print("VERIFY FAILED\n" + "\n".join(problems), file=sys.stderr)
+            return 4
+        print(f"applied and verified {patch} {name!r}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
