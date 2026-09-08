@@ -45,6 +45,9 @@ Captures (uploads need the "Ampero II" editor installed: its dylib converts the 
   ampero2 clone-delete 6
   ampero2 ir-upload 2 cab.wav [name]       User IR 1-50
 
+USB audio (pip install "ampero2[reamp]"; the current patch's input node SOURCE must be USB OUT 3/4)
+  ampero2 reamp di.wav wet.wav [--tail S] [--mono]   play di.wav into chain A (USB out 3), record chain A (USB in 1/2)
+
 Global Settings (one write at a time; unknown ids or values HANG the pedal until a power cycle)
   ampero2 global-set ID VALUE [PAGE]   e.g. 0x10 1 (No Cab L = cab only), 0x04 1 8 (Bank Select = wait); ids in protocol.GLOBAL_PARAMS
   ampero2 ctrl 1 exp|single|dual       EXP/CTRL 1-2 function
@@ -141,7 +144,7 @@ def _current_patch(dev: Ampero) -> int:
     return struct.unpack("<I", reply_body(dev.request(msg_query_global(9))))[0]
 
 
-OFFLINE = ("models", "params", "resolve")
+OFFLINE = ("models", "params", "resolve", "reamp")
 
 
 def _offline(cmd: str, args: list[str]) -> int:
@@ -169,6 +172,19 @@ def _offline(cmd: str, args: list[str]) -> int:
         else:
             for m in matches:
                 print(f"{m.hits:2d} {m.score:5.2f} {m.index:3d} {m.name:24s} {m.based_on}")
+    elif cmd == "reamp":
+        from pathlib import Path
+        try:
+            from .reamp import NoSignal, reamp
+        except ImportError:
+            raise SystemExit('reamp needs the audio extra: pip install "ampero2[reamp]"')
+        tail = float(args[args.index("--tail") + 1]) if "--tail" in args else 2.0
+        try:
+            r = reamp(Path(args[0]), Path(args[1]), tail_s=tail, mono="--mono" in args)
+        except NoSignal as e:
+            print(e)
+            return 3
+        print(f"wrote {args[1]}: {r.frames} frames, {r.rms_db} dBFS")
     return 0
 
 

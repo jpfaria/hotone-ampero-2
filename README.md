@@ -12,6 +12,7 @@ ampero2 model 4 AMP "Marshell 45"   # put a model in a slot (editor catalog: amp
 ampero2 nam-upload 3 capture.nam    # NAM -> slot 3 (uses the editor's converter through ctypes)
 ampero2 ir-upload 2 cab.wav         # IR -> User IR 2
 ampero2 eq                          # Global EQ
+ampero2 reamp di.wav wet.wav        # play a DI through the current patch over USB audio, record the result
 ampero2 listen                      # print patches the pedal broadcasts when you step on a footswitch
 ampero2                             # every command
 ```
@@ -24,7 +25,8 @@ Patches (load, read, save, list, copy = load + save), scenes, knobs, block on/of
 slot, scene names, tempo, volume, footswitch functions, quick access, EXP targets, user
 templates, Global Settings (Input/Output, Bank Select, Auto Cab, display mode, USB source,
 EXP/CTRL, Global Tempo, Global EQ), inventories (patches, NAM, CLONE, IR, firmware), NAM
-upload/rename/delete, CLONE upload/delete, IR upload. The pedal broadcasts the new patch by
+upload/rename/delete, CLONE upload/delete, IR upload, catalog lookup by real-world gear name
+(`resolve`), re-amping over USB audio (`reamp`, extra `ampero2[reamp]`). The pedal broadcasts the new patch by
 itself when you change patches with your feet. Byte-level details: [docs/protocol.md](docs/protocol.md).
 
 ## Rules that keep the firmware alive

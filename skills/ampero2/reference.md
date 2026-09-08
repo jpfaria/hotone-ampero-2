@@ -52,6 +52,9 @@ Captures (uploads need the "Ampero II" editor installed: its dylib converts the 
   ampero2 clone-delete 6
   ampero2 ir-upload 2 cab.wav [name]       User IR 1-50
 
+USB audio (pip install "ampero2[reamp]"; the current patch's input node SOURCE must be USB OUT 3/4)
+  ampero2 reamp di.wav wet.wav [--tail S] [--mono]   play di.wav into chain A (USB out 3), record chain A (USB in 1/2)
+
 Global Settings (one write at a time; unknown ids or values HANG the pedal until a power cycle)
   ampero2 global-set ID VALUE [PAGE]   e.g. 0x10 1 (No Cab L = cab only), 0x04 1 8 (Bank Select = wait); ids in protocol.GLOBAL_PARAMS
   ampero2 ctrl 1 exp|single|dual       EXP/CTRL 1-2 function
