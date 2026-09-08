@@ -1,57 +1,58 @@
 # hotone-ampero-2
 
-Controle a **Hotone Ampero II Stage** pela USB, sem o editor: protocolo SysEx
-decifrado (setembro/2026, firmware V1.7.0, editor 1.x) e uma CLI/biblioteca Python.
+Control a **Hotone Ampero II Stage** over USB without the editor: the reverse-engineered
+SysEx protocol (September 2026, firmware V1.7.0) plus a Python library and CLI.
 
 ```bash
-pipx install git+https://github.com/jpfaria/hotone-ampero-2   # ou: pip install -e .
-ampero2 patches                     # os 300 slots com nomes
-ampero2 show A30-3                  # slots/modelos, knobs, cenas, on/off, tempo, footswitches
+pipx install git+https://github.com/jpfaria/hotone-ampero-2   # or: pip install -e .
+ampero2 patches                     # the 300 slots with their names
+ampero2 show A30-3                  # slots/models, knob values, scenes, on/off, tempo, footswitches
 ampero2 load A30-3 && ampero2 scene 2 && ampero2 param 6 0 25 && ampero2 save A30-3 DET-LUGA
-ampero2 model 4 AMP "Marshell 45"   # modelo num slot (catálogo do editor: ampero2 models AMP)
-ampero2 nam-upload 3 captura.nam    # NAM -> slot 3 (conversor do editor via ctypes)
+ampero2 model 4 AMP "Marshell 45"   # put a model in a slot (editor catalog: ampero2 models AMP)
+ampero2 nam-upload 3 capture.nam    # NAM -> slot 3 (uses the editor's converter through ctypes)
 ampero2 ir-upload 2 cab.wav         # IR -> User IR 2
 ampero2 eq                          # Global EQ
-ampero2                             # lista todos os comandos
+ampero2                             # every command
 ```
 
-Sem argumentos a CLI lista tudo. `python3 -m ampero2` funciona sem instalar o script.
+`python3 -m ampero2` works without the console script.
 
-## O que está coberto
+## Covered
 
-Patch (load, ler, gravar, listar, copiar = load + save), cena, knob, on/off por cena,
-modelo no slot, nome de cena, tempo, volume, footswitches, quick access, alvo do EXP,
-templates, globais (Input/Output, Bank Select, Auto Cab, display, fonte USB, EXP/CTRL,
-Global Tempo, Global EQ), inventários (patches, NAM, CLONE, IR, firmware), upload/rename/
-delete de NAM, upload/delete de CLONE, upload de IR. A pedaleira manda o dump do patch
-novo sozinha quando você troca pelo pé. Detalhes byte a byte em [docs/protocol.md](docs/protocol.md).
+Patches (load, read, save, list, copy = load + save), scenes, knobs, block on/off, model per
+slot, scene names, tempo, volume, footswitch functions, quick access, EXP targets, user
+templates, Global Settings (Input/Output, Bank Select, Auto Cab, display mode, USB source,
+EXP/CTRL, Global Tempo, Global EQ), inventories (patches, NAM, CLONE, IR, firmware), NAM
+upload/rename/delete, CLONE upload/delete, IR upload. The pedal broadcasts the new patch by
+itself when you change patches with your feet. Byte-level details: [docs/protocol.md](docs/protocol.md).
 
-## Regras que evitam travar o firmware
+## Rules that keep the firmware alive
 
-- Sets de globais: **um por vez**, só (página, id, valor) já documentados, ler a página depois.
-  Um id ou valor errado deixa a pedaleira muda para SysEx até desligar/ligar (3 travadas
-  durante a engenharia reversa).
-- `save` grava o *edit buffer* no slot dado e renomeia o buffer; recarregue o patch depois.
-- Uploads de NAM/IR precisam do editor "Ampero II" instalado (usa `HTUSBTools.dylib`
-  por ctypes para converter `.nam` → `.namb` e normalizar o wav).
+- Global Settings writes: **one at a time**, only (page, id, value) triples that are
+  documented, then read the page back. A wrong id or value silences the pedal's SysEx until
+  a power cycle (it happened three times while reverse-engineering).
+- `save` stores the *edit buffer* into the given slot and renames the buffer; reload the patch
+  afterwards.
+- NAM/IR uploads need the "Ampero II" editor installed: `HTUSBTools.dylib` is called through
+  ctypes to convert `.nam` → `.namb` and to normalize the wav.
 
-## Requisitos
+## Requirements
 
-macOS (CoreMIDI via `python-rtmidi`), Python ≥ 3.10, pedaleira ligada por USB
-(porta `Ampero II Stage MIDI`). O editor pode ficar aberto.
+macOS (CoreMIDI through `python-rtmidi`), Python ≥ 3.10, the pedal on USB (port
+`Ampero II Stage MIDI`). The editor can stay open; it just won't show USB changes.
 
-## Plugin Claude Code
+## Claude Code plugin
 
-Este repo também é um marketplace: `claude plugin marketplace add jpfaria/hotone-ampero-2`
-e habilite `ampero2@hotone-ampero-2`. A skill `ampero2` ensina o agente a usar a CLI
-com as regras acima.
+This repo is also a plugin marketplace: `claude plugin marketplace add jpfaria/hotone-ampero-2`,
+then enable `ampero2@hotone-ampero-2`. The bundled `ampero2` skill teaches the agent the CLI
+and the rules above.
 
-## Desenvolvimento
+## Development
 
 ```bash
-pip install -e ".[dev]" && pytest -q      # vetores capturados do editor (docs/captures)
-python3 -m ampero2.catalog_build          # regenera ampero2/catalog.json do editor instalado
-python3 -m ampero2.mmon_export doc.mmon   # decodifica uma captura do MIDI Monitor
+pip install -e ".[dev]" && pytest -q      # golden vectors captured from the editor (docs/captures)
+python3 -m ampero2.catalog_build          # rebuild ampero2/catalog.json from the installed editor
+python3 -m ampero2.mmon_export doc.mmon   # decode a MIDI Monitor capture
 ```
 
 MIT.
