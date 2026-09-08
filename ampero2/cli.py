@@ -1,34 +1,57 @@
-"""ampero: talk to the Ampero II Stage over USB without the editor.
+"""ampero2: talk to the Hotone Ampero II Stage over USB (SysEx) without the editor.
 
-  ampero2 patches                    list the 300 patch slots with names
-  ampero2 show A30-3                 patch summary: slots/models, scenes, on/off, tempo, footswitches
-  ampero2 inventory                  firmware version, CLONE captures and NAM models on the pedal
-  ampero2 nam-upload 3 file.nam [name]   convert (editor dylib) and upload a NAM into NAM Slot 3 (1-based)
-  ampero2 ir-upload 2 cab.wav [name]     normalize (editor dylib) and upload an IR into User IR 2 (1-based)
-  ampero2 clone-upload 6 file.clo [name] upload a CLONE capture into Sound Clone 6 (1-based)
-  ampero2 nam-delete 3 / clone-delete 6  empty a NAM / CLONE slot (1-based)
-  ampero2 dump A28-4 [out.bin]      fetch a patch, print header, optionally save decompressed image
-  ampero2 load A30-3                 make the pedal switch to that patch
-  ampero2 scene [2]                  print the active scene, or select scene 1-5 in the current patch
-  ampero2 param 6 0 25               set slot 6, parameter 0 to 25.0 (edit buffer, not saved)
-  ampero2 powers 2 0 1 0 0 1 1 1 0 0 0 0 0   on/off of the 12 slots for scene 2
-  ampero2 save A28-4 PIT-TETO        store the edit buffer into that slot with that name
-  ampero2 model 4 AMP "Marshell 45"  put a model into a slot (edit buffer); `model 4 none` empties it
-  ampero2 models AMP                 list a category's models (index, code, based on)
-  ampero2 params AMP "Marshell 45"   list a model's parameters (index, default, range)
-  ampero2 scene-name 1 USBSCN        rename scene 1 (max 7 chars)
-  ampero2 volume 100                 patch output volume (0-100, the value next to the speaker icon)
-  ampero2 quick-access 1 4 0         quick access para 1 = slot 4, knob 0;  quick-access 1 off  clears it
-  ampero2 exp 1 1 4 0                EXP1 target 1 = slot 4, knob 0;  exp 1 1 off  clears it
-  ampero2 templates                  list the 5 user templates;  template-save 1 NAME / template-load 1
-  ampero2 nam-rename 3 NAME          rename NAM Slot 3 (max 16 chars)
-  ampero2 ctrl 1 single / ctrl 1 fs 29   EXP/CTRL 1 function (exp|single|dual) / its single-FS code (hex)
-  ampero2 listen [seconds]           print patch changes the pedal broadcasts (footswitches), default 60 s
-  ampero2 tempo 120                  patch tempo (bpm)
-  ampero2 global 1                   read raw bytes of a Global Settings page (1..8)
-  ampero2 global-set 1 0             set global param 1 (No Cab Mode L: 0 off, 1 cab only, 2 ir only)
-  ampero2 footswitches [1d ff ff ff ff ff ff]   read, or write, the 7 footswitch functions (hex, ff=off)
-Slots: line 1 = 0..5, line 2 = 6..11. Parameter index = knob order in the editor panel.
+Inspect
+  ampero2 patches                      list the 300 patch slots (A1-1..A60-5) with names
+  ampero2 show A30-3                   patch summary: model per slot, knob values (scene 1), on/off per scene, tempo, footswitches
+  ampero2 dump A30-3 [out.bin]         fetch a patch, print header, optionally save the decompressed 7705-byte image
+  ampero2 inventory                    firmware, CLONE captures, NAM models, user IRs on the pedal
+  ampero2 templates                    the 5 user templates
+  ampero2 scene                        print the active scene (1-5)
+  ampero2 global N                     raw bytes of Global Settings page N (0-10)
+  ampero2 eq                           Global EQ (bands, freq, Q, gain, level)
+  ampero2 footswitches                 the 7 footswitch function codes of the current patch
+  ampero2 listen [seconds]             print the patch the pedal broadcasts when a footswitch changes it (default 60 s)
+
+Catalog (offline, from the editor's model table)
+  ampero2 models AMP                   models of a category: index, code, "based on"
+  ampero2 params AMP "Marshell 45"     knobs of a model: index, default, range
+  categories: DYN FREQ WAH DRV AMP "PRE AMP" CAB IR EQ MOD DLY RVB "FX SND" "FX RTN" "FX LOOP" VOL CLONE NAM
+
+Select / persist
+  ampero2 load A30-3                   switch the pedal to that patch (no-op if already current)
+  ampero2 scene 2                      select scene 1-5 of the current patch
+  ampero2 save A30-3 NAME              store the edit buffer into that slot with that name (max 16 chars)
+  ampero2 template-save 1 NAME         store the edit buffer as user template 1-5 (name max 11)
+  ampero2 template-load 1              load user template 1-5 into the edit buffer
+
+Edit buffer (not stored until `save`)
+  ampero2 param SLOT INDEX VALUE       knob INDEX of SLOT = VALUE (float); scene 1 propagates to all scenes
+  ampero2 model SLOT CAT "Model"       put a model into a slot;  model SLOT none  empties it
+  ampero2 powers SCENE b0 .. b11       on/off of the 12 slots for that scene (12 values 0/1)
+  ampero2 scene-name SCENE NAME        rename a scene (max 7 chars)
+  ampero2 tempo BPM                    patch tempo
+  ampero2 volume 0-100                 patch output volume (the value next to the speaker icon)
+  ampero2 footswitches c1 .. c7        7 hex function codes (1b-1f scene 1-5, 10 bank-, 26 patch+, 0d tap, 12 tuner, 11 looper, 29 exp 1/2, ff off)
+  ampero2 quick-access PARA SLOT KNOB  quick access para 1-3;  quick-access PARA off  clears it
+  ampero2 exp EXP TARGET SLOT KNOB     EXP 1-3, target 1-4;  exp EXP TARGET off  clears it
+
+Captures (uploads need the "Ampero II" editor installed: its dylib converts the files)
+  ampero2 nam-upload 3 file.nam [name]     NAM Slot 1-30
+  ampero2 nam-rename 3 NAME                (max 16 chars)
+  ampero2 nam-delete 3
+  ampero2 clone-upload 6 file.clo [name]   Sound Clone 1-30
+  ampero2 clone-delete 6
+  ampero2 ir-upload 2 cab.wav [name]       User IR 1-50
+
+Global Settings (one write at a time; unknown ids or values HANG the pedal until a power cycle)
+  ampero2 global-set ID VALUE [PAGE]   e.g. 0x10 1 (No Cab L = cab only), 0x04 1 8 (Bank Select = wait); ids in protocol.GLOBAL_PARAMS
+  ampero2 ctrl 1 exp|single|dual       EXP/CTRL 1-2 function
+  ampero2 ctrl 1 fs 29                 single-FS code (hex) of EXP/CTRL 1-2
+  ampero2 eq-set "band 1" gain 3       Global EQ field: band (low cut, low shelf, band 1-4, high shelf, high cut) + enabled|freq|q|gain
+
+Slots are 0-based: line 1 = 0..5, line 2 = 6..11 (empty slots count). Knob INDEX is 0-based, in the
+order printed by `show`/`params`. Everything else (patch, scene, NAM/IR/CLONE/template slot, para,
+EXP, target) is 1-based like the editor's labels.
 """
 from __future__ import annotations
 

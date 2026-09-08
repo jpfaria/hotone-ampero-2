@@ -69,6 +69,7 @@ Or per project, in `.claude/settings.json`:
 pip install -e ".[dev]" && pytest -q      # golden vectors captured from the editor (docs/captures)
 python3 -m ampero2.catalog_build          # rebuild ampero2/catalog.json from the installed editor
 python3 -m ampero2.mmon_export doc.mmon   # decode a MIDI Monitor capture
+python3 tools/build_reference.py           # regenerate skills/ampero2/reference.md
 ```
 
 MIT.
