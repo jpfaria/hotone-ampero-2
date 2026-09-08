@@ -59,6 +59,12 @@ cited gear; give me an isolated-guitar WAV and I'll tune it, or tell me what's o
 - **No stand-ins by taste.** The catalog lacks the researched unit → `resolve` says `unresolved` →
   you research (cited) what the artist used *instead* or what the unit is a clone of, and name that.
   "EVM12L is the classic Dumble speaker so UK Custom 4x12" is your taste, not a source.
+- **Cab not in the catalog (`no_cab`, or the sourced cab has no match):** name it by the **cited
+  speaker** first (EV/EVM12L, Greenback, V30, Alnico Blue…), then the cited size; `provenance:
+  derived`, and tell the user which cited fact chose it. No cited speaker or size → the closest
+  cab of the **same amp family**, said out loud as a stand-in. Never by what "sounds right".
+- **Knobs from a different unit** (a Two-Rock's settings on the Dumble model, a live rig's on a
+  studio take) are `unverified`, never `sourced` — the number is documented, its meaning here is not.
 - **Knobs come from sources, derivation, or catalog defaults.** You have no ears. A number you
   "feel" is right is `unverified` at best — say so — and never an EQ band: EQ gains come only from
   `eq-match`.
