@@ -15,6 +15,8 @@ Inspect
 Catalog (offline, from the editor's model table)
   ampero2 models AMP                   models of a category: index, code, "based on"
   ampero2 params AMP "Marshell 45"     knobs of a model: index, default, range
+  ampero2 resolve DRV "Klon Centaur"   which models are based on a real unit: hits, index, name, based on;
+                                       --strict = exactly one clear winner or exit 2 "unresolved";  --json
   categories: DYN FREQ WAH DRV AMP "PRE AMP" CAB IR EQ MOD DLY RVB "FX SND" "FX RTN" "FX LOOP" VOL CLONE NAM
 
 Select / persist
@@ -139,12 +141,45 @@ def _current_patch(dev: Ampero) -> int:
     return struct.unpack("<I", reply_body(dev.request(msg_query_global(9))))[0]
 
 
+OFFLINE = ("models", "params", "resolve")
+
+
+def _offline(cmd: str, args: list[str]) -> int:
+    """Catalog commands: no pedal needed."""
+    import json
+    from .resolve import resolve, strict, _groups
+    cat = Catalog.load()
+    if cmd == "models":
+        for m in cat.category(args[0]).models:
+            print(f"{m.index:3d} 0x{m.code:08X} {m.name:24s} {m.based_on or ''}")
+    elif cmd == "params":
+        for p in cat.find(args[0], args[1]).params:
+            print(f"{p.index:2d} {p.name:16s} default={p.default:>6s} range={p.min}..{p.max} type={p.type}")
+    elif cmd == "resolve":
+        flags = {a for a in args[2:] if a.startswith("--")}
+        matches = resolve(cat, args[0], args[1])
+        if "--strict" in flags:
+            m = strict(matches, len(_groups(args[1])))
+            if m is None:
+                print(f"unresolved {args[0]} {args[1]!r} candidates: {[x.name for x in matches]}")
+                return 2
+            matches = [m]
+        if "--json" in flags:
+            print(json.dumps([m.__dict__ for m in matches]))
+        else:
+            for m in matches:
+                print(f"{m.hits:2d} {m.score:5.2f} {m.index:3d} {m.name:24s} {m.based_on}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv if argv is None else argv
     if len(argv) < 2:
         print(__doc__)
         return 2
     cmd, args = argv[1], argv[2:]
+    if cmd in OFFLINE:
+        return _offline(cmd, args)
     with Ampero() as dev:
         if cmd == "patches":
             for i, name in enumerate(patch_names(decode_reply(dev.request_dump(msg_query_inventory("patches"))))):
@@ -217,12 +252,6 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 m = Catalog.load().find(args[1], args[2])
                 dev.send(msg_set_model(int(args[0]), m.category_index, m.code))
-        elif cmd == "models":
-            for m in Catalog.load().category(args[0]).models:
-                print(f"{m.index:3d} 0x{m.code:08X} {m.name:24s} {m.based_on or ''}")
-        elif cmd == "params":
-            for p in Catalog.load().find(args[0], args[1]).params:
-                print(f"{p.index:2d} {p.name:16s} default={p.default:>6s} range={p.min}..{p.max} type={p.type}")
         elif cmd == "scene-name":
             dev.send(msg_rename_scene(int(args[0]) - 1, args[1]))
         elif cmd == "tempo":

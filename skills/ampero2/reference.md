@@ -22,6 +22,8 @@ Inspect
 Catalog (offline, from the editor's model table)
   ampero2 models AMP                   models of a category: index, code, "based on"
   ampero2 params AMP "Marshell 45"     knobs of a model: index, default, range
+  ampero2 resolve DRV "Klon Centaur"   which models are based on a real unit: hits, index, name, based on;
+                                       --strict = exactly one clear winner or exit 2 "unresolved";  --json
   categories: DYN FREQ WAH DRV AMP "PRE AMP" CAB IR EQ MOD DLY RVB "FX SND" "FX RTN" "FX LOOP" VOL CLONE NAM
 
 Select / persist
