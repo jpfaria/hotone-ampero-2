@@ -139,10 +139,10 @@ to be confirmed against the real repo when it lands:
   `self_floor_pct`, `top_octave_dead`, `reliable_range_hz`.
 - `tone-analyzer compare ref.wav wet.wav --out-dir D` → `diff.json` with
   `proximity_pct`, `ref_top_octave_dead`.
-- `tone-analyzer eq-match ref.wav wet.wav --gains g1,…,gN --bands 31,63,…,16000` →
-  `new_gains`, `proximity_pct`. (Band centres must be parameterisable; if the real CLI
-  cannot, the adapter maps its 8 octave gains onto the 10 Graphic EQ bands by nearest
-  centre and says so in the report.)
+- `tone-analyzer eq-match ref.wav wet.wav --gains g1,…,g8 --output F` → `new_gains[8]`,
+  `band_centers_hz` (80 Hz…10.24 kHz, fixed). The adapter maps the 10 Graphic EQ gains to the
+  8 analyzer bands and back by nearest centre. (Confirmed against jpfaria/tone-analyzer v0.1.0;
+  `fingerprint.json` keeps the match target under `fingerprint_match_target`.)
 
 Exposes `fingerprint(ref)`, `compare(ref, wet)`, `eq_match(ref, wet, gains)` returning
 dicts; `within(proximity, floor) = proximity >= floor - 3`.
@@ -162,8 +162,8 @@ dicts; `within(proximity, floor) = proximity >= floor - 3`.
 5. **Build**: `build_patch.py --research … --apply REAMP …`. `unresolved` → fix the
    research.
 6. **Validate** (reference present, not degraded): `ampero2 reamp DI.wav wet.wav` with the
-   bundled DI (the tone-analyzer's fixture DI or the user's; the skill never asks the user
-   to record one), `compare`, then regulate — amp/drive gain knobs first (one step at a
+   user's DI (`$HOME/.ampero2/di.wav`, asked for once; the tone-analyzer fixtures are
+   synthetic tones, not a guitar), `compare`, then regulate — amp/drive gain knobs first (one step at a
    time on the researched model, never a different model), then `eq-match` → `--eq-gains`
    → re-apply → `reamp` → `compare` — until `within`; plateau below the floor → report
    both numbers, stop. Reference-less or degraded: **flat EQ, no loop**, say so.

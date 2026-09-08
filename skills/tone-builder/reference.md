@@ -66,8 +66,12 @@ python3 $TB/build_patch.py --research R.json --plan PLAN.json --apply A26-2 NAME
 ampero2 reamp DI.wav WET.wav [--tail S] [--mono]                              # needs input source USB OUT 3/4
 tone-analyzer analyze REF.wav --out-dir EVAL/ref                              # fingerprint.json: self_floor_pct, top_octave_dead
 tone-analyzer compare REF.wav WET.wav --out-dir EVAL/v1                       # diff.json: proximity_pct
-tone-analyzer eq-match REF.wav WET.wav --gains g1,…,g10 --bands 31,63,125,250,500,1000,2000,4000,8000,16000 --output EVAL/v1/eq_match.json
+tone-analyzer eq-match REF.wav WET.wav --gains g1,…,g8 --output EVAL/v1/eq_match.json   # 8 analyzer bands (80 Hz…10.24 kHz)
 ```
+
+The analyzer works on 8 octave bands, the pedal's Graphic EQ on 10: `scripts/analyzer.py`
+(`eq_match(ref, wet, current_10_gains)`) does the nearest-centre mapping both ways and caps ±6 dB —
+use it (python one-liner or import) rather than mapping by hand.
 
 `build_patch.py` exit codes: `2` build aborted (`unresolved`, `uncited`, `forbidden`, `too_many`, `no_cab`
 — stderr says which and why), `4` verify mismatch after apply (`show` did not read back the plan),
@@ -89,8 +93,10 @@ in a working patch** (call it `REAMP`, slot of their choice). Build and iterate 
 the result to the destination at the end (`ampero2 load REAMP && ampero2 save DEST NAME`). Tell the user
 the destination inherits `SOURCE = USB OUT 3/4` and must be flipped back to `Input` on the screen.
 
-DI: the `tone-analyzer` package ships a clean DI fixture; use it unless the user gives one. Never ask the
-user to record a DI; the wet reference is the only thing you ask for.
+DI: a real guitar DI WAV, reused across every tone, kept at `$HOME/.ampero2/di.wav`. Ask the user for
+it once (any dry electric-guitar recording, mono, a few bars of open chords + single notes). The
+`tone-analyzer` test fixtures are synthetic tones, not a guitar — never use them as the DI. No DI →
+the validation loop is unavailable → reference-less path, say so.
 
 ## Evaluation directory
 

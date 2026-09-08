@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 
 from scripts import build_patch as B
@@ -62,8 +64,7 @@ def test_verify_reads_show_back(plan):
 
 def test_main_plan_only_and_exit_codes(tmp_path, monkeypatch):
     out = tmp_path / "plan.json"
-    monkeypatch.setattr(B.Runner, "exe", "python3")
-    monkeypatch.setattr(B.Runner, "run", RealRunner.run)
+    monkeypatch.setattr(B.Runner, "exe", f"{sys.executable} -m ampero2")
     assert B.main(["--research", str(FIX / "deluxe_rhythm.json"), "--plan", str(out)]) == 0
     assert '"Graphic EQ"' in out.read_text()
     bad = tmp_path / "bad.json"

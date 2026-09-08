@@ -1,10 +1,11 @@
-"""The only file that knows the `tone-analyzer` CLI (jpfaria/tone-analyzer).
+"""The only file that knows the `tone-analyzer` CLI (github.com/jpfaria/tone-analyzer, v0.1).
 
-Assumed interface (the OpenRig tone-analyzer schema). When the real CLI differs, fix it HERE only:
-  tone-analyzer analyze REF --out-dir D            -> D/fingerprint.json  (global.self_floor_pct, global.top_octave_dead, global.reliable_range_hz)
-  tone-analyzer compare REF WET --out-dir D        -> D/diff.json         (proximity_pct, ref_top_octave_dead)
-  tone-analyzer eq-match REF WET --gains g,.. --bands hz,.. --output F -> F (new_gains, proximity_pct, bands_hz)
-Override the executable with $TONE_ANALYZER.
+  tone-analyzer analyze REF --out-dir D          -> D/fingerprint.json  (fingerprint_match_target.self_floor_pct,
+                                                     .top_octave_dead, .reliable_range_hz)
+  tone-analyzer compare REF WET --out-dir D      -> D/diff.json         (proximity_pct, ref_top_octave_dead)
+  tone-analyzer eq-match REF WET --gains g1,..,g8 --output F -> F      (new_gains[8], band_centers_hz[8])
+The analyzer works on 8 octave bands (80 Hz .. 10.24 kHz); the pedal's Graphic EQ has 10 (31 Hz .. 16 kHz).
+This module maps between them by nearest centre. Override the executable with $TONE_ANALYZER.
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from pathlib import Path
 
 TONE_ANALYZER = os.environ.get("TONE_ANALYZER", "tone-analyzer")
 GRAPHIC_EQ_HZ = [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
-DEFAULT_BANDS_HZ = [63, 125, 250, 500, 1000, 2000, 4000, 8000]     # OpenRig's 8 octave centres
+ANALYZER_BANDS_HZ = [80, 160, 320, 640, 1280, 2560, 5120, 10240]
 EQ_CAP_DB = 6.0
 WITHIN_MARGIN = 3.0
 DEGRADED_ROLLOFF_HZ = 800
@@ -37,7 +38,7 @@ def _call(run, args: list[str], out_dir, result_name: str) -> dict:
 def fingerprint(ref, out_dir, run=_run) -> dict:
     """self_floor_pct (the per-song ceiling), top_octave_dead, degraded (-> flat-EQ path, no loop)."""
     fp = _call(run, ["analyze", str(ref), "--out-dir", str(out_dir)], out_dir, "fingerprint.json")
-    g = fp.get("global", fp)
+    g = fp.get("fingerprint_match_target") or fp.get("global") or fp
     dead = bool(g.get("top_octave_dead", False))
     hi = (g.get("reliable_range_hz") or [0, 20000])[1]
     return {"self_floor_pct": float(g.get("self_floor_pct", 100.0)), "top_octave_dead": dead,
@@ -54,17 +55,25 @@ def within(proximity_pct: float, self_floor_pct: float) -> bool:
     return proximity_pct >= self_floor_pct - WITHIN_MARGIN
 
 
-def _remap(gains: list[float], bands: list[float]) -> list[float]:
-    """Nearest-centre remap of N band gains onto the 10 Graphic EQ bands."""
-    return [gains[min(range(len(bands)), key=lambda j: abs(bands[j] - hz))] for hz in GRAPHIC_EQ_HZ]
+def _nearest(hz: float, centres: list[float]) -> int:
+    return min(range(len(centres)), key=lambda j: abs(centres[j] - hz))
 
 
-def eq_match(ref, wet, gains: list[float], out_dir=".", run=_run) -> list[float]:
+def to_analyzer_bands(eq_gains: list[float], bands: list[float] = ANALYZER_BANDS_HZ) -> list[float]:
+    """Current 10 Graphic EQ gains -> the analyzer's 8 band gains (nearest Graphic EQ band per analyzer centre)."""
+    return [float(eq_gains[_nearest(hz, GRAPHIC_EQ_HZ)]) for hz in bands]
+
+
+def to_graphic_eq(new_gains: list[float], bands: list[float]) -> list[float]:
+    """Analyzer band gains -> 10 Graphic EQ gains (nearest analyzer centre per Graphic EQ band), capped ±6 dB."""
+    return [max(-EQ_CAP_DB, min(EQ_CAP_DB, float(new_gains[_nearest(hz, bands)]))) for hz in GRAPHIC_EQ_HZ]
+
+
+def eq_match(ref, wet, eq_gains: list[float], out_dir=".", run=_run) -> list[float]:
     """Next 10 Graphic EQ gains (dB, capped ±6) that move WET's spectral shape toward REF."""
-    args = ["eq-match", str(ref), str(wet), "--gains", ",".join(f"{g:g}" for g in gains),
-            "--bands", ",".join(str(h) for h in GRAPHIC_EQ_HZ), "--output", str(Path(out_dir) / "eq_match.json")]
-    r = _call(run, args, out_dir, "eq_match.json")
-    new = [float(x) for x in r["new_gains"]]
-    if len(new) != len(GRAPHIC_EQ_HZ):
-        new = _remap(new, [float(b) for b in r.get("bands_hz", DEFAULT_BANDS_HZ)])
-    return [max(-EQ_CAP_DB, min(EQ_CAP_DB, g)) for g in new]
+    out = Path(out_dir) / "eq_match.json"
+    args = ["eq-match", str(ref), str(wet), "--gains", ",".join(f"{g:g}" for g in to_analyzer_bands(eq_gains)),
+            "--output", str(out)]
+    r = _call(run, args, out_dir, out.name)
+    bands = [float(b) for b in (r.get("band_centers_hz") or r.get("bands_hz") or ANALYZER_BANDS_HZ)]
+    return to_graphic_eq([float(x) for x in r["new_gains"]], bands)
