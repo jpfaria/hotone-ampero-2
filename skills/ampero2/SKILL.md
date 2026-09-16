@@ -12,7 +12,9 @@ the Global EQ fields and the catalog categories — read it before composing com
 Want the tone of a song or artist built as a patch? That is the **tone-builder** skill; this one only
 talks to the pedal.
 
-Setup: macOS, pedal on USB (port `Ampero II Stage MIDI`). Not installed?
+Setup: macOS, pedal on USB (port `Ampero II Stage MIDI`). Mapped on the **Ampero II Stage** only;
+Ampero II / Ampero II Stomp are untested (port names, slot count, catalog, USB routing may differ —
+read with `dump`/`show` before any write). Not installed?
 `pipx install git+https://github.com/jpfaria/hotone-ampero-2` (or `pip install -e "${CLAUDE_PLUGIN_ROOT}"`).
 The editor may stay open but does NOT show USB changes — `ampero2 show` is the source of truth.
 

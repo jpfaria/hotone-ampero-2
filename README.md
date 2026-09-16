@@ -29,6 +29,13 @@ upload/rename/delete, CLONE upload/delete, IR upload, catalog lookup by real-wor
 (`resolve`), re-amping over USB audio (`reamp`, extra `ampero2[reamp]`). The pedal broadcasts the new patch by
 itself when you change patches with your feet. Byte-level details: [docs/protocol.md](docs/protocol.md).
 
+## Which pedal
+
+Reverse-engineered on the **Ampero II Stage** (firmware V1.7.0, MIDI port `Ampero II Stage MIDI`,
+audio device `Ampero II Stage Audio`, 12 slots). The other Ampero II models (Ampero II, Ampero II
+Stomp) share the editor family and probably the protocol, but are **untested**: port names, slot
+count, catalog and USB audio routing may differ — verify with `dump`/`show` before writing.
+
 ## Rules that keep the firmware alive
 
 - Global Settings writes: **one at a time**, only (page, id, value) triples that are
