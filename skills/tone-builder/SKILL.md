@@ -11,44 +11,41 @@ yourself; `build_patch.py` resolves the researched names through `ampero2 resolv
 cannot back, applies through the `ampero2` CLI and reads the patch back. `reference.md` (next to
 this file) has the research JSON schema, the knob aliases, the command lines and the exit codes.
 
-Setup: `tone-analyzer` comes with `ampero2`; the re-amp loop needs `pip install "ampero2[reamp]"`.
+
+**A record to measure against (full mix + separated guitar track) → this skill does not build the
+tone: load `tone-builder:tone-builder` (plugin `jpfaria/tone-builder`) and run
+`tone-builder build --device ampero2 --reamp-patch <patch with SOURCE = USB OUT 3/4>`.** It measures on the record's harmonics, one library note at a
+time, with retention. `tone-analyzer compare` / `eq-match` / `proximity_pct` are obsolete — never use
+them (1/3-octave bands on a single note fall 74–84 dB between harmonics; a separated track deletes
+harmonics above ~H6). What stays below is the **reference-less** build (a genre tone, no recording).
 
 **Violating the letter of these rules is violating their spirit.** "Faz rápido" changes nothing
 below: a fast wrong tone is thrown away and rebuilt slowly anyway.
 
 ## The FORM — every tone, the same
 
-0. **Ask once, up front:** destination patch (must be empty; a named patch needs the user's
-   explicit "overwrite"), the working `REAMP` patch (see reference.md) when a reference exists,
-   and whether there is a reference WAV of the **isolated guitar**. Then work autonomously.
-1. **Fingerprint the reference** (if any): `tone-analyzer analyze`. A full mix or a
-   wrong-instrument stem is refused and explained. `degraded` → flat path (step 5 skipped).
-2. **Research the rig for THIS song, cited.** `tonedb.co` first, then groundguitar.com,
+0. **Destination:** the next empty slot; never overwrite a named one. Do not stop to ask.
+1. **Research the rig for THIS song, cited.** `tonedb.co` first, then groundguitar.com,
    killerrig.com, musicstrive.com, guitarchalk.com, Premier Guitar / Guitar World rig rundowns.
    Every element: comp, gate, drive(s), amp + channel, cab/speaker, mod, delay, reverb. Open the
    pages; a URL you did not open is not a source. What you remember about the artist is a
    hypothesis to verify, never a citation.
-3. **Write `EVAL/research/<role>-v<N>.json`** (schema in reference.md). Re-walk it in both
+2. **Write `EVAL/research/<role>-v<N>.json`** (schema in reference.md). Re-walk it in both
    directions: every unit a source names is in it; every block in it points at a source that names
    it. The noise gate is the only uncited block allowed.
-4. **Build:** `build_patch.py --research … --plan … --apply REAMP|DEST NAME`. Exit 2 = fix the
+3. **Build:** `build_patch.py --research … --plan … --apply REAMP|DEST NAME`. Exit 2 = fix the
    research (`unresolved` → add the channel/variant word a source supports, or research a different
    unit; `no_cab` → research the cab; `uncited` → drop the block or find its source). Relay the
    `unverified` and `unmapped` lists verbatim.
-5. **Validate** (reference present, not degraded): `ampero2 reamp DI.wav wet-vN.wav`,
-   `tone-analyzer compare`, `within = proximity_pct ≥ self_floor_pct − 3`. Not within → regulate in
-   this order, one move per iteration, re-apply, re-amp, re-compare: (a) the researched amp's or
-   drive's **gain** knob, (b) `tone-analyzer eq-match` → `--eq-gains`. The amp model never changes.
-   Plateau below the floor → report both numbers and stop.
-6. **Persist:** if built in `REAMP`, `ampero2 load REAMP && ampero2 save DEST NAME && ampero2 show
+4. **Persist:** if built in `REAMP`, `ampero2 load REAMP && ampero2 save DEST NAME && ampero2 show
    DEST`. Say plainly what is unverified, what was derived, and (fallback) that `SOURCE` must be
    flipped back on the screen.
-7. **Ear feedback:** one explicit complaint from the user → ONE bounded move (≈ ±2–3 dB on one EQ
+5. **Ear feedback:** one explicit complaint from the user → ONE bounded move (≈ ±2–3 dB on one EQ
    band, one gain-knob step, or a researched cab swap) → stop and let them judge again.
 
-**No reference, or degraded reference:** steps 1 and 5 do not apply. Ship the researched gear with
+**Always reference-less here:** ship the researched gear with
 all EQ gains at 0 and say: *"no reference to match — this is an un-tunable starting point built from
-cited gear; give me an isolated-guitar WAV and I'll tune it, or tell me what's off by ear."*
+cited gear; give me the record and the separated guitar track and tone-builder measures it, or tell me what's off by ear."*
 
 ## Hard rules
 
@@ -68,8 +65,7 @@ cited gear; give me an isolated-guitar WAV and I'll tune it, or tell me what's o
 - **Knobs from a different unit** (a Two-Rock's settings on the Dumble model, a live rig's on a
   studio take) are `unverified`, never `sourced` — the number is documented, its meaning here is not.
 - **Knobs come from sources, derivation, or catalog defaults.** You have no ears. A number you
-  "feel" is right is `unverified` at best — say so — and never an EQ band: EQ gains come only from
-  `eq-match`.
+  "feel" is right is `unverified` at best — say so — and never an EQ band: EQ gains stay at 0 here (tone-builder fits EQ, under retention).
 - **The tone is scene 1, slots, knobs, tempo.** Scenes 2–5, scene names, footswitches, EXP, quick
   access, patch volume, Global EQ: not touched. The user configures them afterwards with the
   `ampero2` skill.
