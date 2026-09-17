@@ -1,7 +1,7 @@
 {
   "name": "ampero2",
   "description": "Control a Hotone Ampero II Stage over USB from Claude (patches, scenes, knobs, models, globals, NAM/IR/CLONE uploads, re-amp over USB audio) and build a song's tone as a patch from cited gear research.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": {
     "name": "Jo\u00e3o Paulo"
   },
