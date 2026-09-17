@@ -17,6 +17,7 @@ Inspect
   ampero2 global N                     raw bytes of Global Settings page N (0-10)
   ampero2 eq                           Global EQ (bands, freq, Q, gain, level)
   ampero2 footswitches                 the 7 footswitch function codes of the current patch
+  ampero2 patch-midi A30-3             the 6 Patch MIDI messages the patch sends when it loads
   ampero2 listen [seconds]             print the patch the pedal broadcasts when a footswitch changes it (default 60 s)
 
 Catalog (offline, from the editor's model table)
@@ -43,6 +44,8 @@ Edit buffer (not stored until `save`)
   ampero2 footswitches c1 .. c7        7 hex function codes (1b-1f scene 1-5, 10 bank-, 26 patch+, 0d tap, 12 tuner, 11 looper, 29 exp 1/2, ff off)
   ampero2 quick-access PARA SLOT KNOB  quick access para 1-3;  quick-access PARA off  clears it
   ampero2 exp EXP TARGET SLOT KNOB     EXP 1-3, target 1-4;  exp EXP TARGET off  clears it
+  ampero2 patch-midi-set MSG CH cc N DATA   Patch MIDI message 1-6: channel 1-16, CC N (0-127), value 0-127
+  ampero2 patch-midi-set MSG CH pc PROG     same, Program Change;  patch-midi-set MSG off  turns it off
 
 Captures (uploads need the "Ampero II" editor installed: its dylib converts the files)
   ampero2 nam-upload 3 file.nam [name]     NAM Slot 1-30

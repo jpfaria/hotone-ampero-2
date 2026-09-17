@@ -10,6 +10,7 @@ Inspect
   ampero2 global N                     raw bytes of Global Settings page N (0-10)
   ampero2 eq                           Global EQ (bands, freq, Q, gain, level)
   ampero2 footswitches                 the 7 footswitch function codes of the current patch
+  ampero2 patch-midi A30-3             the 6 Patch MIDI messages the patch sends when it loads
   ampero2 listen [seconds]             print the patch the pedal broadcasts when a footswitch changes it (default 60 s)
 
 Catalog (offline, from the editor's model table)
@@ -36,6 +37,8 @@ Edit buffer (not stored until `save`)
   ampero2 footswitches c1 .. c7        7 hex function codes (1b-1f scene 1-5, 10 bank-, 26 patch+, 0d tap, 12 tuner, 11 looper, 29 exp 1/2, ff off)
   ampero2 quick-access PARA SLOT KNOB  quick access para 1-3;  quick-access PARA off  clears it
   ampero2 exp EXP TARGET SLOT KNOB     EXP 1-3, target 1-4;  exp EXP TARGET off  clears it
+  ampero2 patch-midi-set MSG CH cc N DATA   Patch MIDI message 1-6: channel 1-16, CC N (0-127), value 0-127
+  ampero2 patch-midi-set MSG CH pc PROG     same, Program Change;  patch-midi-set MSG off  turns it off
 
 Captures (uploads need the "Ampero II" editor installed: its dylib converts the files)
   ampero2 nam-upload 3 file.nam [name]     NAM Slot 1-30
@@ -109,6 +112,8 @@ from .protocol import (
     is_patch_dump,
     msg_rename_scene,
     msg_set_footswitches,
+    msg_set_patch_midi,
+    PATCH_MIDI_PC,
     msg_set_global,
     msg_set_model,
     msg_set_tempo,
@@ -213,6 +218,9 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  slot {s:2d} {m.category:7s} {m.name:20s} scenes={on}  {vals}")
             for i, (name, bpm) in enumerate(zip(img.scene_names, img.tempos)):
                 print(f"  scene {i + 1} {name!r} {bpm} bpm")
+            for i, m in enumerate(img.patch_midi):
+                if m.channel is not None:
+                    print(f"  patch midi {i + 1}: {m.label()}")
         elif cmd == "inventory":
             print("firmware", firmware_version(decode_reply(dev.request_dump(msg_query_inventory("firmware")))))
             for kind in ("clones", "nams"):
@@ -326,6 +334,12 @@ def main(argv: list[str] | None = None) -> int:
                     chunks = []
         elif cmd == "global-set":
             dev.send(msg_set_global(int(args[0], 0), int(args[1]), page=int(args[2]) if len(args) > 2 else 1))
+        elif cmd == "patch-midi":
+            img = parse_image(decompress_patch(dev.request_dump(msg_get_patch(patch_index(args[0])))))
+            for i, m in enumerate(img.patch_midi):
+                print(f"{i + 1}  {m.label()}")
+        elif cmd == "patch-midi-set":
+            dev.send(_patch_midi_msg(args))
         elif cmd == "footswitches":
             if args:
                 dev.send(msg_set_footswitches([int(x, 16) for x in args]))
@@ -335,6 +349,19 @@ def main(argv: list[str] | None = None) -> int:
             print(__doc__)
             return 2
     return 0
+
+
+def _patch_midi_msg(args: list[str]) -> bytes:
+    """MSG off | MSG CH cc N DATA | MSG CH pc PROG"""
+    msg = int(args[0])
+    if args[1:] == ["off"]:
+        return msg_set_patch_midi(msg, None, 0, 0)
+    ch, kind = int(args[1]), args[2].lower()
+    if kind == "cc" and len(args) == 5:
+        return msg_set_patch_midi(msg, ch, int(args[3]), int(args[4]))
+    if kind == "pc" and len(args) == 4:
+        return msg_set_patch_midi(msg, ch, PATCH_MIDI_PC, int(args[3]))
+    raise ValueError("usage: patch-midi-set MSG off | MSG CH cc N DATA | MSG CH pc PROG")
 
 
 if __name__ == "__main__":

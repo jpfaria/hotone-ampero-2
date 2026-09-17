@@ -72,6 +72,10 @@ ampero2 global 1                                # confirm byte 15 == 1
 ampero2 eq && ampero2 eq-set "band 1" gain 3
 ```
 
+**Patch MIDI** (what the patch sends to other gear when it loads): `ampero2 patch-midi A57-1` reads the 6 messages;
+`ampero2 load A57-1 && ampero2 patch-midi-set 1 1 cc 56 127 && ampero2 save A57-1 NAME` writes message 1
+(channel 1, CC 56, value 127); `patch-midi-set 1 1 pc 5` = Program Change 5; `patch-midi-set 1 off`.
+
 **Follow the footswitches**: `ampero2 listen 120` prints each patch the pedal broadcasts.
 
 ## Hard rules
@@ -92,5 +96,5 @@ writes made right before a hang were not persisted. Say this to the user plainly
 
 ## Not possible over USB (use the editor)
 
-Chain topology (series/parallel), Patch MIDI messages, EXP range/curve, PATCH FS FUNC, MIDI
+Chain topology (series/parallel), EXP range/curve, PATCH FS FUNC, MIDI
 channel/clock settings, USB audio levels, display colour/brightness, deleting IRs or templates.

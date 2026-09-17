@@ -42,6 +42,7 @@ IEEE-754 little-endian.
 | patch tempo | 12 | `02 00 09 01` | `[00 00][bpm u16]` |
 | patch volume | 12 | `01 00 09 01` | `[00 00][volume u16]` (the "100" next to the speaker icon) |
 | patch footswitches | 11/12 | `00 00 03 01` + `00 00 00 00` reads (12×FF + `10 0F 12 00` when unassigned); `01 00 03 01` writes 7 bytes, one per footswitch | function codes: Scene 1..5 = 1B..1F, Bank- 10, Patch+ 26, Tap Tempo 0D, Tuner 12, Looper 11, EXP 1/2 29, block A2 0C, OFF FF (other slots, Bank+, Patch- not captured) |
+| patch MIDI | 12 | `02 00 0B 01` + `[msg u32 0-5][channel][command][data]` (captured 2026-09-16) | channel 0-15 or FF = OFF; command 0-127 = CC n, 80 = PC; data 0-127. Edit buffer; `save` persists. Read back from the patch image at 7687 |
 | quick access | 12 | `01 00 02 01` | `[para][slot][category][code u32][param]`; empty = `[para][FF×7]` |
 | EXP target | 12 | `02 00 06 01` | `[target][exp][slot][category][code u32][param]`; empty = `[target][exp][FF×7]` (range/curve not captured) |
 | user templates | 11/12 | `04 00 00 02` lists (5 × 12 bytes: name ≤7 + NUL + 4 leftover bytes); `02 00 00 02` `[position+4 u32][name 11 + NUL]` saves the edit buffer; `03 00 00 02` `[position+4 u32]` loads (reply `00 00 00 02` = template image) |
@@ -164,5 +165,5 @@ None of this is required to drive the pedal; the tool works without it.
 - MIDI Monitor's Copy truncates long SysEx; save the document (`.mmon`, a plist whose
   `messageData` is an NSKeyedArchiver archive) to keep the full bytes — `ampero2.mmon_export`
   decodes it.
-- Not captured: chain topology (series/parallel), Patch MIDI, EXP range/curve, deleting IRs
+- Not captured: chain topology (series/parallel), EXP range/curve, deleting IRs
   or templates.

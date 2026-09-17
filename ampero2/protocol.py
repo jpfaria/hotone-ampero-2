@@ -219,6 +219,26 @@ def msg_set_footswitches(functions: list[int]) -> bytes:
     return _msg(CMD_DATA, "01000301", bytes(functions))
 
 
+PATCH_MIDI_MESSAGES = 6
+PATCH_MIDI_PC = 0x80        # command byte: 0-127 = CC n, 0x80 = Program Change
+PATCH_MIDI_OFF = 0xFF       # channel byte when the message is OFF
+
+
+def msg_set_patch_midi(msg: int, channel: int | None, command: int, data: int) -> bytes:
+    """Patch MIDI message `msg` (1-6) of the edit buffer: channel 1-16 or None (OFF),
+    command 0-127 = CC n or PATCH_MIDI_PC, data 0-127 (CC value / program number)."""
+    if not 1 <= msg <= PATCH_MIDI_MESSAGES:
+        raise ValueError(f"patch MIDI message must be 1-{PATCH_MIDI_MESSAGES}")
+    if channel is not None and not 1 <= channel <= 16:
+        raise ValueError("channel must be 1-16 or None (off)")
+    if not 0 <= command <= PATCH_MIDI_PC:
+        raise ValueError("command must be 0-127 (CC) or PATCH_MIDI_PC")
+    if not 0 <= data <= 127:
+        raise ValueError("data must be 0-127")
+    ch = PATCH_MIDI_OFF if channel is None else channel - 1
+    return _msg(CMD_DATA, "02000B01", struct.pack("<I", msg - 1) + bytes((ch, command, data)))
+
+
 _REPLY_BODY_START = 9   # after [type 2B][op][tgt][len32][tag]
 
 

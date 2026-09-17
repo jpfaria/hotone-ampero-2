@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import lzokay
 
-from .protocol import SLOTS, Frame
+from .protocol import PATCH_MIDI_MESSAGES, PATCH_MIDI_OFF, PATCH_MIDI_PC, SLOTS, Frame
 
 _STREAM_OFFSET = 8
 _MAX_IMAGE = 65536
@@ -27,6 +27,8 @@ _TEMPOS = 6326
 _SCENE_NAMES = 6655
 _SCENE_NAME_FIELD = 8
 SLOT_EMPTY_CODE = 0xFFFFFFFF
+_PATCH_MIDI = 7687          # 6 x [channel (FF off, 0-15), command (0-127 CC, 0x80 PC), data]; image ends here
+PATCH_MIDI_COUNT = PATCH_MIDI_MESSAGES
 
 # inventories (reply of the queries listed in protocol.INVENTORY)
 PATCH_COUNT = 300
@@ -45,6 +47,19 @@ class PatchHeader:
 
 
 @dataclass(frozen=True)
+class PatchMidi:
+    channel: int | None     # 1-16, None = OFF
+    command: int            # 0-127 = CC n, PATCH_MIDI_PC = program change
+    data: int
+
+    def label(self) -> str:
+        if self.channel is None:
+            return "off"
+        cmd = "PC" if self.command == PATCH_MIDI_PC else f"CC {self.command}"
+        return f"ch {self.channel}  {cmd}  {self.data}"
+
+
+@dataclass(frozen=True)
 class PatchImage:
     raw: bytes
     header: PatchHeader
@@ -53,6 +68,7 @@ class PatchImage:
     tempos: list[int]
     powers: list[list[bool]]
     footswitches: list[int]
+    patch_midi: list[PatchMidi]
 
     def param(self, scene: int, slot: int, index: int) -> float:
         return struct.unpack_from("<f", self.raw, _PARAMS + _SCENE_STRIDE * scene + _SLOT_STRIDE * slot + 4 * index)[0]
@@ -108,7 +124,12 @@ def parse_image(raw: bytes) -> PatchImage:
         tempos=[struct.unpack_from("<H", raw, _TEMPOS + 2 * i)[0] for i in range(SCENES)],
         powers=[[raw[_POWERS + SLOTS * i + s] == 1 for s in range(SLOTS)] for i in range(SCENES)],
         footswitches=list(raw[_FOOTSWITCHES:_FOOTSWITCHES + FOOTSWITCH_COUNT]),
+        patch_midi=[_patch_midi(raw[_PATCH_MIDI + 3 * i:_PATCH_MIDI + 3 * i + 3]) for i in range(PATCH_MIDI_COUNT)],
     )
+
+
+def _patch_midi(rec: bytes) -> PatchMidi:
+    return PatchMidi(None if rec[0] == PATCH_MIDI_OFF else rec[0] + 1, rec[1], rec[2])
 
 
 def name_table(raw: bytes, field: int) -> list[str]:
