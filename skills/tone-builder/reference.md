@@ -67,7 +67,7 @@ Any other key is `unmapped`. Run `ampero2 params CAT "Model"` to see a model's k
 TB=${CLAUDE_PLUGIN_ROOT}/skills/tone-builder/scripts
 python3 $TB/build_patch.py --research R.json --plan PLAN.json                 # plan only, no pedal
 python3 $TB/build_patch.py --research R.json --plan PLAN.json --apply A26-2 NAME [--overwrite] [--eq-gains g1,…,g10]
-ampero2 reamp DI.wav WET.wav [--tail S] [--mono]                              # needs input source USB OUT 3/4
+ampero2 reamp DI.wav WET.wav [--tail S] [--mono]                              # after `ampero2 input-source usb34`
 tone-analyzer analyze REF.wav --out-dir EVAL/ref                              # fingerprint.json: self_floor_pct, top_octave_dead
 tone-analyzer compare REF.wav WET.wav --out-dir EVAL/v1                       # diff.json: proximity_pct
 tone-analyzer eq-match REF.wav WET.wav --gains g1,…,g8 --output EVAL/v1/eq_match.json   # 8 analyzer bands (80 Hz…10.24 kHz)
@@ -91,11 +91,9 @@ Audio goes computer → USB Output 3 → **chain A input** only when the current
 `SOURCE` is `USB OUT 3/4` (`INPUT CH = L`). Chain A's output comes back on USB Input 1/2.
 `reamp` exits 3 with "no signal" when that is not set.
 
-Whether `SOURCE` can be set over USB is recorded in `docs/protocol.md` ("Input node SOURCE"). Until an
-`ampero2 input-source` command exists: the user sets `SOURCE = USB OUT 3/4` **once, on the touchscreen,
-in a working patch** (call it `REAMP`, slot of their choice). Build and iterate in that patch; copy
-the result to the destination at the end (`ampero2 load REAMP && ampero2 save DEST NAME`). Tell the user
-the destination inherits `SOURCE = USB OUT 3/4` and must be flipped back to `Input` on the screen.
+`ampero2 input-source usb34` sets it in the edit buffer (message captured from the editor on 2026-09-17,
+verified live). Build and iterate in any empty patch with it set; before saving to the destination run
+`ampero2 input-source input` so the saved patch plays the guitar input again.
 
 DI: a real guitar DI WAV, reused across every tone, kept at `$HOME/.ampero2/di.wav`. Ask the user for
 it once (any dry electric-guitar recording, mono, a few bars of open chords + single notes). The

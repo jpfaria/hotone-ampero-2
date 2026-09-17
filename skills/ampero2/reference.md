@@ -46,6 +46,8 @@ Edit buffer (not stored until `save`)
   ampero2 exp EXP TARGET SLOT KNOB     EXP 1-3, target 1-4;  exp EXP TARGET off  clears it
   ampero2 patch-midi-set MSG CH cc N DATA   Patch MIDI message 1-6: channel 1-16, CC N (0-127), value 0-127
   ampero2 patch-midi-set MSG CH pc PROG     same, Program Change;  patch-midi-set MSG off  turns it off
+  ampero2 input-source A30-3               chain A input node SOURCE of a patch (input | fx-return | usb34)
+  ampero2 input-source usb34               set it in the edit buffer (usb34 = re-amp over USB); `save` persists
 
 Captures (uploads need the "Ampero II" editor installed: its dylib converts the files)
   ampero2 nam-upload 3 file.nam [name]     NAM Slot 1-30
@@ -55,7 +57,7 @@ Captures (uploads need the "Ampero II" editor installed: its dylib converts the 
   ampero2 clone-delete 6
   ampero2 ir-upload 2 cab.wav [name]       User IR 1-50
 
-USB audio (pip install "ampero2[reamp]"; the current patch's input node SOURCE must be USB OUT 3/4)
+USB audio (pip install "ampero2[reamp]"; set the patch's input source first: `ampero2 input-source usb34`)
   ampero2 reamp di.wav wet.wav [--tail S] [--mono]   play di.wav into chain A (USB out 3), record chain A (USB in 1/2)
 
 Global Settings (one write at a time; unknown ids or values HANG the pedal until a power cycle)

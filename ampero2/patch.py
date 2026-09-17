@@ -69,9 +69,14 @@ class PatchImage:
     powers: list[list[bool]]
     footswitches: list[int]
     patch_midi: list[PatchMidi]
+    input_source: str | None = None
 
     def param(self, scene: int, slot: int, index: int) -> float:
         return struct.unpack_from("<f", self.raw, _PARAMS + _SCENE_STRIDE * scene + _SLOT_STRIDE * slot + 4 * index)[0]
+
+
+_INPUT_SOURCE = 6703   # chain A input node SOURCE (captured 2026-09-17)
+_INPUT_SOURCE_NAMES = {0: "input", 1: "fx-return", 2: "usb34"}
 
 
 def reassemble(frames: list[Frame]) -> bytes:
@@ -125,6 +130,7 @@ def parse_image(raw: bytes) -> PatchImage:
         powers=[[raw[_POWERS + SLOTS * i + s] == 1 for s in range(SLOTS)] for i in range(SCENES)],
         footswitches=list(raw[_FOOTSWITCHES:_FOOTSWITCHES + FOOTSWITCH_COUNT]),
         patch_midi=[_patch_midi(raw[_PATCH_MIDI + 3 * i:_PATCH_MIDI + 3 * i + 3]) for i in range(PATCH_MIDI_COUNT)],
+        input_source=_INPUT_SOURCE_NAMES.get(raw[_INPUT_SOURCE]) if len(raw) > _INPUT_SOURCE else None,
     )
 
 

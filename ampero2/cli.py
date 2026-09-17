@@ -39,6 +39,8 @@ Edit buffer (not stored until `save`)
   ampero2 exp EXP TARGET SLOT KNOB     EXP 1-3, target 1-4;  exp EXP TARGET off  clears it
   ampero2 patch-midi-set MSG CH cc N DATA   Patch MIDI message 1-6: channel 1-16, CC N (0-127), value 0-127
   ampero2 patch-midi-set MSG CH pc PROG     same, Program Change;  patch-midi-set MSG off  turns it off
+  ampero2 input-source A30-3               chain A input node SOURCE of a patch (input | fx-return | usb34)
+  ampero2 input-source usb34               set it in the edit buffer (usb34 = re-amp over USB); `save` persists
 
 Captures (uploads need the "Ampero II" editor installed: its dylib converts the files)
   ampero2 nam-upload 3 file.nam [name]     NAM Slot 1-30
@@ -48,7 +50,7 @@ Captures (uploads need the "Ampero II" editor installed: its dylib converts the 
   ampero2 clone-delete 6
   ampero2 ir-upload 2 cab.wav [name]       User IR 1-50
 
-USB audio (pip install "ampero2[reamp]"; the current patch's input node SOURCE must be USB OUT 3/4)
+USB audio (pip install "ampero2[reamp]"; set the patch's input source first: `ampero2 input-source usb34`)
   ampero2 reamp di.wav wet.wav [--tail S] [--mono]   play di.wav into chain A (USB out 3), record chain A (USB in 1/2)
 
 Global Settings (one write at a time; unknown ids or values HANG the pedal until a power cycle)
@@ -125,6 +127,8 @@ from .protocol import (
     msg_scene,
     msg_scene_powers,
     msg_set_param,
+    INPUT_SOURCES,
+    msg_set_input_source,
     patch_index,
     patch_label,
 )
@@ -208,7 +212,8 @@ def main(argv: list[str] | None = None) -> int:
         elif cmd == "show":
             img = parse_image(decompress_patch(dev.request_dump(msg_get_patch(patch_index(args[0])))))
             cat = Catalog.load()
-            print(f"{patch_label(img.header.index)} {img.header.name!r}  footswitches={_hex(bytes(img.footswitches))}")
+            print(f"{patch_label(img.header.index)} {img.header.name!r}  footswitches={_hex(bytes(img.footswitches))}"
+                  f"  input={img.input_source}")
             for s, code in enumerate(img.slot_codes):
                 if code is None:
                     continue
@@ -340,6 +345,13 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{i + 1}  {m.label()}")
         elif cmd == "patch-midi-set":
             dev.send(_patch_midi_msg(args))
+        elif cmd == "input-source":
+            if args and args[0] in INPUT_SOURCES:
+                dev.send(msg_set_input_source(args[0]))
+            else:
+                target = patch_index(args[0]) if args else _current_patch(dev)
+                img = parse_image(decompress_patch(dev.request_dump(msg_get_patch(target))))
+                print(img.input_source)
         elif cmd == "footswitches":
             if args:
                 dev.send(msg_set_footswitches([int(x, 16) for x in args]))

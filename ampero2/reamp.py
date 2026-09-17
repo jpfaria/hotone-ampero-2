@@ -63,6 +63,6 @@ def reamp(di: Path, out: Path, *, tail_s: float = 2.0, mono: bool = False,
     rms_db = 20 * float(np.log10(rms))
     if rms_db < SILENCE_DBFS:
         raise NoSignal(f"recorded {rms_db:.1f} dBFS: no signal came back. "
-                       "Is the current patch's input source set to USB OUT 3/4?")
+                       "Is the current patch's input source USB OUT 3/4? Run `ampero2 input-source usb34`.")
     sf.write(Path(out), rec[:, 0] if mono else rec, DEVICE_RATE, subtype="PCM_24")
     return ReampResult(total, round(rms_db, 1))

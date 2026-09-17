@@ -239,6 +239,18 @@ def msg_set_patch_midi(msg: int, channel: int | None, command: int, data: int) -
     return _msg(CMD_DATA, "02000B01", struct.pack("<I", msg - 1) + bytes((ch, command, data)))
 
 
+# Input node SOURCE of chain A (option index as in the editor's list). Captured from the
+# editor on 2026-09-17; only chain A was captured.
+INPUT_SOURCES = {"input": 0, "fx-return": 1, "usb34": 2}
+
+
+def msg_set_input_source(source: str) -> bytes:
+    """Chain A input node SOURCE of the edit buffer; `save` persists it."""
+    if source not in INPUT_SOURCES:
+        raise ValueError(f"input source must be one of {sorted(INPUT_SOURCES)}")
+    return _msg(CMD_DATA, "01000501", bytes((0, 0, INPUT_SOURCES[source], 0)))
+
+
 _REPLY_BODY_START = 9   # after [type 2B][op][tgt][len32][tag]
 
 
