@@ -14,7 +14,7 @@ this file) has the research JSON schema, the knob aliases, the command lines and
 
 **A record to measure against (full mix + separated guitar track) → this skill does not build the
 tone: load `tone-builder:tone-builder` (plugin `jpfaria/tone-builder`) and run
-`tone-builder build --device ampero2 --reamp-patch <patch with SOURCE = USB OUT 3/4>`.** It measures on the record's harmonics, one library note at a
+`tone-builder build --device ampero2 --work-patch <an empty patch>`.** It measures on the record's harmonics, one library note at a
 time, with retention. `tone-analyzer compare` / `eq-match` / `proximity_pct` are obsolete — never use
 them (1/3-octave bands on a single note fall 74–84 dB between harmonics; a separated track deletes
 harmonics above ~H6). What stays below is the **reference-less** build (a genre tone, no recording).
@@ -33,13 +33,12 @@ below: a fast wrong tone is thrown away and rebuilt slowly anyway.
 2. **Write `EVAL/research/<role>-v<N>.json`** (schema in reference.md). Re-walk it in both
    directions: every unit a source names is in it; every block in it points at a source that names
    it. The noise gate is the only uncited block allowed.
-3. **Build:** `build_patch.py --research … --plan … --apply REAMP|DEST NAME`. Exit 2 = fix the
+3. **Build:** `build_patch.py --research … --plan … --apply DEST NAME` (an empty slot). Exit 2 = fix the
    research (`unresolved` → add the channel/variant word a source supports, or research a different
    unit; `no_cab` → research the cab; `uncited` → drop the block or find its source). Relay the
    `unverified` and `unmapped` lists verbatim.
-4. **Persist:** if built in `REAMP`, `ampero2 load REAMP && ampero2 save DEST NAME && ampero2 show
-   DEST`. Say plainly what is unverified, what was derived, and (fallback) that `SOURCE` must be
-   flipped back on the screen.
+4. **Persist:** `--apply` already saved; `ampero2 show DEST` is the proof (`input=input`). Say plainly
+   what is unverified and what was derived.
 5. **Ear feedback:** one explicit complaint from the user → ONE bounded move (≈ ±2–3 dB on one EQ
    band, one gain-knob step, or a researched cab swap) → stop and let them judge again.
 
