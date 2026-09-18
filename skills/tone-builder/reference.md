@@ -1,16 +1,14 @@
 # tone-builder reference
 
-Two tools, used only from the command line:
+One tool, used only from the command line: `ampero2` — the pedal. `resolve` (catalog lookup) and the
+patch commands `build_patch.py` drives. Everything about the pedal itself is in the `ampero2` skill.
 
-- `ampero2` — the pedal. `resolve` (catalog lookup), `reamp` (USB audio through the pedal), and the
-  patch commands `build_patch.py` drives. Everything about the pedal itself is in the `ampero2` skill.
-- `tone-analyzer` — the audio (github.com/jpfaria/tone-analyzer, Python ≥ 3.11). `analyze` /
-  `compare` / `eq-match` on WAV files. Override the executable with `$TONE_ANALYZER`. Its interface
-  lives in `scripts/analyzer.py` (see its docstring); when the CLI changes, fix that one file.
+This skill builds **reference-less** tones only. Measuring against a record (full mix + separated
+guitar track) is the `tone-builder` plugin (`jpfaria/tone-builder`, `tone-builder build --device
+ampero2`). `tone-analyzer compare` / `eq-match` / `proximity_pct` are obsolete — never use them.
 
-Setup: `tone-analyzer` is a dependency of `ampero2` (installed with it); the re-amp loop also needs
-`pip install "ampero2[reamp]"`. Check `ampero2 resolve AMP "Fender Twin"` and `tone-analyzer --help`
-before starting a tone; missing → install, do not improvise.
+Setup: check `ampero2 resolve AMP "Fender Twin"` before starting a tone; missing → install, do not
+improvise.
 
 Scripts live in `${CLAUDE_PLUGIN_ROOT}/skills/tone-builder/scripts/` (stdlib only, Python ≥ 3.11).
 
@@ -55,8 +53,8 @@ Any other key is `unmapped`. Run `ampero2 params CAT "Model"` to see a model's k
 ## Catalog rules that differ from a modeler with captures
 
 - **AMP / PRE AMP models have no speaker.** A CAB (or IR) slot is mandatory; the build enforces it.
-- The EQ slot is always `EQ "Graphic EQ"` (31 Hz … 16 kHz, −12…+12 dB, `Level` left at 50). Gains come
-  only from `tone-analyzer eq-match` (`--eq-gains`, capped ±6 dB); otherwise all 0.
+- The EQ slot is always `EQ "Graphic EQ"` (31 Hz … 16 kHz, −12…+12 dB, `Level` left at 50). All gains 0;
+  `--eq-gains` (capped ±6 dB) exists only for the user's explicit ear feedback, one band per move.
 - Slot order: gate → comp → wah → drive(s) → amp → cab → eq → mod → delay → reverb, slots 0…n.
   Scene 1 only, every slot on. Scenes, footswitches, EXP, quick access, patch volume, Global EQ:
   not this skill — the user configures them with the `ampero2` skill afterwards.
@@ -67,15 +65,7 @@ Any other key is `unmapped`. Run `ampero2 params CAT "Model"` to see a model's k
 TB=${CLAUDE_PLUGIN_ROOT}/skills/tone-builder/scripts
 python3 $TB/build_patch.py --research R.json --plan PLAN.json                 # plan only, no pedal
 python3 $TB/build_patch.py --research R.json --plan PLAN.json --apply A26-2 NAME [--overwrite] [--eq-gains g1,…,g10]
-ampero2 reamp DI.wav WET.wav [--tail S] [--mono]                              # after `ampero2 input-source usb34`
-tone-analyzer analyze REF.wav --out-dir EVAL/ref                              # fingerprint.json: self_floor_pct, top_octave_dead
-tone-analyzer compare REF.wav WET.wav --out-dir EVAL/v1                       # diff.json: proximity_pct
-tone-analyzer eq-match REF.wav WET.wav --gains g1,…,g8 --output EVAL/v1/eq_match.json   # 8 analyzer bands (80 Hz…10.24 kHz)
 ```
-
-The analyzer works on 8 octave bands, the pedal's Graphic EQ on 10: `scripts/analyzer.py`
-(`eq_match(ref, wet, current_10_gains)`) does the nearest-centre mapping both ways and caps ±6 dB —
-use it (python one-liner or import) rather than mapping by hand.
 
 `build_patch.py` exit codes: `2` build aborted (`unresolved`, `uncited`, `forbidden`, `too_many`, `no_cab`
 — stderr says which and why), `4` verify mismatch after apply (`show` did not read back the plan),
@@ -85,23 +75,7 @@ and `unmapped` lists on stderr: relay both to the user.
 `--apply` runs: `load PATCH`, `model` per slot (+ `none` on the rest), `param` per non-default knob,
 `powers 1 …`, `tempo`, `save PATCH NAME`, then reloads and `show`s to verify. Nothing else.
 
-## Re-amp precondition (validation loop)
-
-Audio goes computer → USB Output 3 → **chain A input** only when the current patch's input node
-`SOURCE` is `USB OUT 3/4` (`INPUT CH = L`). Chain A's output comes back on USB Input 1/2.
-`reamp` exits 3 with "no signal" when that is not set.
-
-`ampero2 input-source usb34` sets it in the edit buffer (message captured from the editor on 2026-09-17,
-verified live). Build and iterate in any empty patch with it set; before saving to the destination run
-`ampero2 input-source input` so the saved patch plays the guitar input again.
-
-DI: a real guitar DI WAV, reused across every tone, kept at `$HOME/.ampero2/di.wav`. Ask the user for
-it once (any dry electric-guitar recording, mono, a few bars of open chords + single notes). The
-`tone-analyzer` test fixtures are synthetic tones, not a guitar — never use them as the DI. No DI →
-the validation loop is unavailable → reference-less path, say so.
-
 ## Evaluation directory
 
 `EVAL = $HOME/.ampero2/evaluations/<artist-song-slug>/` (create it). Keep `research/<role>-v<N>.json`,
-`plan-v<N>.json`, `wet-v<N>.wav`, the analyzer out-dirs, and `eval.md` (gear research with sources,
-mapping, iteration log with the numbers, unverified params, methodology notes).
+`plan-v<N>.json` and `eval.md` (gear research with sources, mapping, unverified params, ear-feedback log).

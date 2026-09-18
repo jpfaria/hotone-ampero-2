@@ -50,16 +50,16 @@ count, catalog and USB audio routing may differ — verify with `dump`/`show` be
 
 macOS (CoreMIDI through `python-rtmidi`), Python ≥ 3.11, the pedal on USB (port
 `Ampero II Stage MIDI`). The editor can stay open; it just won't show USB changes.
-[tone-analyzer](https://github.com/jpfaria/tone-analyzer) is installed as a dependency (the
-tone-builder skill measures with it); the extra `ampero2[reamp]` adds USB audio (`sounddevice`,
+[tone-analyzer](https://github.com/jpfaria/tone-analyzer) is installed as a dependency (shared with
+[tone-builder](https://github.com/jpfaria/tone-builder), which measures a tone against a record); the extra `ampero2[reamp]` adds USB audio (`sounddevice`,
 `soundfile`, `numpy`) for re-amping.
 
 ## Claude Code plugin
 
 This repo is also a plugin marketplace with two skills: `ampero2` (configure the pedal: the CLI
 and the rules above) and `tone-builder` (build the tone of a song as a patch: cited gear research →
-`build_patch.py` → optional re-amp through the pedal + [tone-analyzer](https://github.com/jpfaria/tone-analyzer)
-measurement loop).
+`build_patch.py`, reference-less; matching a record is [jpfaria/tone-builder](https://github.com/jpfaria/tone-builder)
+with `--device ampero2`).
 
 ```bash
 claude plugin marketplace add jpfaria/hotone-ampero-2

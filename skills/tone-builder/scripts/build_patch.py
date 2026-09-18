@@ -284,7 +284,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--research", required=True, type=Path)
     ap.add_argument("--plan", type=Path, help="write the plan JSON here (default: stdout)")
-    ap.add_argument("--eq-gains", help="10 comma-separated dB values for Graphic EQ 31Hz..16kHz, capped ±6")
+    ap.add_argument("--eq-gains", help="10 comma-separated dB values for Graphic EQ 31Hz..16kHz, capped ±6 (ear feedback only)")
     ap.add_argument("--apply", nargs=2, metavar=("PATCH", "NAME"), help="push the plan into PATCH and save it as NAME")
     ap.add_argument("--overwrite", action="store_true", help="allow --apply on a patch that already has a name")
     ap.add_argument("--ampero2", default="ampero2", help='ampero2 command (default: ampero2 on PATH; e.g. "python3 -m ampero2")')
