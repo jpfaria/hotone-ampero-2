@@ -6,7 +6,7 @@ description: Use when the user wants the tone of a specific song, artist or genr
 # tone-builder — a song's tone as an Ampero patch
 
 **You make the judgment calls in natural language (which real gear, cited). Deterministic tools
-turn them into a patch and measure it.** You never pick a catalog model, a slot or a knob index
+turn them into a patch and read it back.** You never pick a catalog model, a slot or a knob index
 yourself; `build_patch.py` resolves the researched names through `ampero2 resolve`, refuses what it
 cannot back, applies through the `ampero2` CLI and reads the patch back. `reference.md` (next to
 this file) has the research JSON schema, the knob aliases, the command lines and the exit codes.
