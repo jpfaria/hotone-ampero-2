@@ -48,6 +48,7 @@ Edit buffer (not stored until `save`)
   ampero2 patch-midi-set MSG CH pc PROG     same, Program Change;  patch-midi-set MSG off  turns it off
   ampero2 input-source A30-3               chain A input node SOURCE of a patch (input | fx-return | usb34)
   ampero2 input-source usb34               set it in the edit buffer (usb34 = re-amp over USB); `save` persists
+  ampero2 doctor                           reports if the current patch is silent for normal playing (input source != input)
 
 Captures (uploads need the "Ampero II" editor installed: its dylib converts the files)
   ampero2 nam-upload 3 file.nam [name]     NAM Slot 1-30
@@ -57,8 +58,11 @@ Captures (uploads need the "Ampero II" editor installed: its dylib converts the 
   ampero2 clone-delete 6
   ampero2 ir-upload 2 cab.wav [name]       User IR 1-50
 
-USB audio (pip install "ampero2[reamp]"; set the patch's input source first: `ampero2 input-source usb34`)
-  ampero2 reamp di.wav wet.wav [--tail S] [--mono]   play di.wav into chain A (USB out 3), record chain A (USB in 1/2)
+USB audio (pip install "ampero2[reamp]")
+  ampero2 reamp di.wav wet.wav [--tail S] [--mono]   play di.wav into chain A (USB out 3), record chain A (USB in 1/2);
+                                                      switches the current patch to input source usb34 for the
+                                                      duration and always restores the previous source after
+                                                      (success, error, or Ctrl-C) -- see `ampero2 doctor`
 
 Global Settings (one write at a time; unknown ids or values HANG the pedal until a power cycle)
   ampero2 global-set ID VALUE [PAGE]   e.g. 0x10 1 (No Cab L = cab only), 0x04 1 8 (Bank Select = wait); ids in protocol.GLOBAL_PARAMS

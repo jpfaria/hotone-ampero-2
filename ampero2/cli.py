@@ -41,6 +41,7 @@ Edit buffer (not stored until `save`)
   ampero2 patch-midi-set MSG CH pc PROG     same, Program Change;  patch-midi-set MSG off  turns it off
   ampero2 input-source A30-3               chain A input node SOURCE of a patch (input | fx-return | usb34)
   ampero2 input-source usb34               set it in the edit buffer (usb34 = re-amp over USB); `save` persists
+  ampero2 doctor                           reports if the current patch is silent for normal playing (input source != input)
 
 Captures (uploads need the "Ampero II" editor installed: its dylib converts the files)
   ampero2 nam-upload 3 file.nam [name]     NAM Slot 1-30
@@ -50,8 +51,11 @@ Captures (uploads need the "Ampero II" editor installed: its dylib converts the 
   ampero2 clone-delete 6
   ampero2 ir-upload 2 cab.wav [name]       User IR 1-50
 
-USB audio (pip install "ampero2[reamp]"; set the patch's input source first: `ampero2 input-source usb34`)
-  ampero2 reamp di.wav wet.wav [--tail S] [--mono]   play di.wav into chain A (USB out 3), record chain A (USB in 1/2)
+USB audio (pip install "ampero2[reamp]")
+  ampero2 reamp di.wav wet.wav [--tail S] [--mono]   play di.wav into chain A (USB out 3), record chain A (USB in 1/2);
+                                                      switches the current patch to input source usb34 for the
+                                                      duration and always restores the previous source after
+                                                      (success, error, or Ctrl-C) -- see `ampero2 doctor`
 
 Global Settings (one write at a time; unknown ids or values HANG the pedal until a power cycle)
   ampero2 global-set ID VALUE [PAGE]   e.g. 0x10 1 (No Cab L = cab only), 0x04 1 8 (Bank Select = wait); ids in protocol.GLOBAL_PARAMS
@@ -87,6 +91,7 @@ from .patch import (
 from .catalog import Catalog
 from .ir import USER_IR_BASE, ir_image, normalize_wav, samples_from_wav
 from .namb import clone_image, convert_nam, upload_image
+from .state import DeviceInputSource, borrowed_input_source, doctor as check_doctor
 from .protocol import (
     CLONE_UPLOAD_KIND,
     IR_UPLOAD_KIND,
@@ -153,7 +158,7 @@ def _current_patch(dev: Ampero) -> int:
     return struct.unpack("<I", reply_body(dev.request(msg_query_global(9))))[0]
 
 
-OFFLINE = ("models", "params", "resolve", "reamp")
+OFFLINE = ("models", "params", "resolve")
 
 
 def _offline(cmd: str, args: list[str]) -> int:
@@ -181,19 +186,6 @@ def _offline(cmd: str, args: list[str]) -> int:
         else:
             for m in matches:
                 print(f"{m.hits:2d} {m.score:5.2f} {m.index:3d} {m.name:24s} {m.based_on}")
-    elif cmd == "reamp":
-        from pathlib import Path
-        try:
-            from .reamp import NoSignal, reamp
-        except ImportError:
-            raise SystemExit('reamp needs the audio extra: pip install "ampero2[reamp]"')
-        tail = float(args[args.index("--tail") + 1]) if "--tail" in args else 2.0
-        try:
-            r = reamp(Path(args[0]), Path(args[1]), tail_s=tail, mono="--mono" in args)
-        except NoSignal as e:
-            print(e)
-            return 3
-        print(f"wrote {args[1]}: {r.frames} frames, {r.rms_db} dBFS")
     return 0
 
 
@@ -357,6 +349,25 @@ def main(argv: list[str] | None = None) -> int:
                 dev.send(msg_set_footswitches([int(x, 16) for x in args]))
             else:
                 print(_hex(reply_body(dev.request(msg_query_footswitches()))))
+        elif cmd == "reamp":
+            from pathlib import Path
+            try:
+                from .reamp import NoSignal, reamp
+            except ImportError:
+                raise SystemExit('reamp needs the audio extra: pip install "ampero2[reamp]"')
+            tail = float(args[args.index("--tail") + 1]) if "--tail" in args else 2.0
+            try:
+                with borrowed_input_source(DeviceInputSource(dev), "usb34"):
+                    r = reamp(Path(args[0]), Path(args[1]), tail_s=tail, mono="--mono" in args)
+            except NoSignal as e:
+                print(e)
+                return 3
+            print(f"wrote {args[1]}: {r.frames} frames, {r.rms_db} dBFS")
+        elif cmd == "doctor":
+            report = check_doctor(DeviceInputSource(dev))
+            print(report.describe())
+            if not report.ok:
+                return 1
         else:
             print(__doc__)
             return 2

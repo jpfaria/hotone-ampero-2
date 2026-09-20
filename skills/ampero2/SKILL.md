@@ -78,6 +78,13 @@ ampero2 eq && ampero2 eq-set "band 1" gain 3
 
 **Follow the footswitches**: `ampero2 listen 120` prints each patch the pedal broadcasts.
 
+**Re-amp a DI through the pedal**: `ampero2 reamp di.wav wet.wav`. Re-amp is borrowed state —
+`reamp` switches the current patch's input source to `usb34` for the call and always restores
+the previous source after, success or failure (see Hard rules). You do not need to run
+`input-source usb34` yourself first. If a session ever ends abnormally (killed process, crash)
+run `ampero2 doctor`: it reports whether the current patch is stuck on a source that leaves the
+pedal silent for normal playing, and prints the fix command.
+
 ## Hard rules
 
 - Global Settings: only (page, id, value) triples listed in `reference.md`; **one write at a
@@ -87,6 +94,12 @@ ampero2 eq && ampero2 eq-set "band 1" gain 3
   re-read the flash, load another patch first.
 - A knob `param` on scene 2-5 changes only that scene.
 - Uploads need the "Ampero II" editor installed (its `HTUSBTools.dylib` converts .nam and .wav).
+- **Input source `usb34` is borrowed state, never left set.** It routes USB Out 3/4 into
+  chain A instead of the guitar input, so the pedal is silent for normal playing while it's on.
+  The only code path allowed to set it is `ampero2 reamp` (`ampero2/state.py`,
+  `borrowed_input_source`), which snapshots the previous source and restores it in `finally` and
+  on SIGINT/SIGTERM. Never call `input-source usb34` and leave it — if you do for manual testing,
+  set it back (`ampero2 input-source input`) or run `ampero2 doctor` to catch it.
 
 ## When the pedal stops answering
 
