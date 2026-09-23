@@ -49,7 +49,11 @@ IEEE-754 little-endian.
 | user templates | 11/12 | `04 00 00 02` lists (5 × 12 bytes: name ≤7 + NUL + 4 leftover bytes); `02 00 00 02` `[position+4 u32][name 11 + NUL]` saves the edit buffer; `03 00 00 02` `[position+4 u32]` loads (reply `00 00 00 02` = template image) |
 | `0A` query the editor sends when a block is clicked | 11 | `03 00 0A 01` | `[slot 00 00 00]` → a float that is not the knob value (660/567 seen); meaning unknown |
 
-Slots: line 1 = 0..5, line 2 = 6..11; empty slots count. Parameter index = knob order in
+Slots: line 1 = 0..5, line 2 = 6..11; empty slots count.
+
+**Chain order table (found 2026-09-22):** 12 bytes at image offset **176**. `order[position] = slot`, where position is the place on the pedal screen (0..5 row 1, 6..11 row 2). An empty patch (A56-1) has the identity table `00..0B`. Some patches don't: A57-x has `02 00 01 08 04 05 06 03 07 09 0A 0B`, so a model written to slot 3 **shows at position 7, after the reverb**. `model SLOT` addresses the slot, not the position. To place a block at screen position P, write to slot `order[P]`. Replacing or clearing models does not change the table, and there is no USB message for moving a block (not captured). Proven with a photo of the screen: LOOP slot 1 → pos 2, CAB 4 → 4, DLY 5 → 5, RVB 6 → 6, AMP 3 → 7.
+
+**Flaky write (2026-09-22):** `powers` after a `model` replace sometimes did not stick (the slot read back `scenes=00000`, two out of eight patches). Always re-read with `show` after saving. Parameter index = knob order in
 the editor panel (Digital Delay HQ: Mix 0, Time 1, Feedback 2, Sync 3). Patch index =
 `(bank-1)*5 + (position-1)` (`A28-4` → 138, `A30-3` → 147); 300 patches (A1-1..A60-5).
 
