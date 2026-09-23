@@ -30,6 +30,12 @@ source: claude-code-sessions
 
 # hotone-ampero-2 — Learnings
 
+## 2026-09-22 — The NAM block's output does not follow the input level (measured on A57-1)
+
+- **Gotcha / invariant:** re-amping the same DI through A57-1 scene 3 (NAM slot 1 `bogner_ecstasy_b` → Boger 4x12 B) and scene 2 (Boger XT Blue M gain 30 → same cab): the NAM comes out **8 dB quieter** (rms −28.9 vs −21.1 dBFS) with mids 800–2 kHz 4 dB lower and >5 kHz 3 dB higher than the amp model. Its output is nearly **independent of the input level**: NAM `Input` knob −20 → +20 dB moves the output only −2.6 → 0 dB; a DI boosted +16 dB (peak −0.9 dBFS) changes nothing (−28.5); a single note 24 dB softer comes out 0.4 dB softer (the amp model: 3.8 dB). `Output` works normally (−10 → −10 dB). Files: 15 s of `gravity-john-mayer/di/jpfaria-rhythm.wav`, `ampero2 reamp --mono`.
+- **Why it matters:** an A/B by ear against a factory amp is unfair by default (8 dB down) and the NAM block plays with no dynamics: softer picking does not clean up. Whether this is the Ampero's NAM converter normalising or the capture saturating at every level is not established; the `Input` knob is not the fix either way. Level-match with `Output` (+8) before judging the tone.
+- **Applies to:** any NAM block on the pedal (`ampero2 param SLOT 0` is `Input`, `1` is `Output`), the tone-builder skill when it puts a NAM next to a factory amp.
+
 ## 2026-09-18 — One direct-reference URL per package across sibling repos
 
 - **Gotcha / invariant:** `tone-analyzer` is a `git+https://…` direct reference. When two packages installed into the same environment (here `ampero2` and `tone-builder`) point at the same package with different URLs (e.g. one pinned `@v0.1.0`, one unpinned), pip refuses to resolve. Keep the exact same URL string in every sibling repo (`b602201`).
