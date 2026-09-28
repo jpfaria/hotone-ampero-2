@@ -1,24 +1,28 @@
-# NAM → Ampero (lite) by distillation
+# NAM → Ampero CLONE (.clo)
 
-**Idea (2026-09-28, João):** take any NAM (A1 standard/xstd, A2 full, LSTM) and bring it to the
-format the Ampero runs natively: the A2 lite WaveNet (1 layer array, 3 channels, kernel 6,
-23 dilations, LeakyReLU, ~1.9k weights, `.namb` ~8 KB).
+**Idea (2026-09-28, João):** turn a NAM capture into the Ampero's own, lighter capture
+format (CLONE, `.clo`), not upload the NAM itself (that already works: `nam-upload`).
 
-## Why it is not a file conversion
-Weights of a 16- or 8-channel network cannot be squeezed into 3 channels. The editor's
-`convertNamToNamb` only re-packs whatever architecture it receives (A1 standard → 55 KB
-`.namb`); for an A2 container it keeps the lite submodel (see `docs/learnings.md`, 2026-09-28).
+## What a .clo is (read from two files, 2026-09-28)
+Fixed 8840 bytes, little-endian. Samples: `tests/fixtures/ts9.clo`,
+`~/Library/Application Support/com.hotone.mp380/Presets/Archetype Mayer X - /MAYERX DUMB CL.clo`.
 
-## How: distillation (teacher → student)
-1. Teacher = the heavy `.nam`. Run it offline over the NAM training signal (`input.wav` v3,
-   48 kHz) → `output.wav`. No amp or pedal involved.
-2. Student = train an A2-lite WaveNet (same config as sub 0 of an A2 file) on
-   `input.wav` → `output.wav` with the `neural-amp-modeler` trainer (torch, MPS on the Mac).
-3. Check ESR student vs teacher on held-out audio (and on a DI, e.g. the gravity DI).
-4. `convertNamToNamb` → `ampero2 nam-upload SLOT file.nam`.
+| offset | content |
+|---|---|
+| 0x00 | `HTSI`, u32 file size (8840), u32 (checksum?, differs per file), zeros |
+| 0x18 | biquad 1: 5 doubles (TS9: identity `1,0,0,0,0`; Mayer: real filter) |
+| 0x40 | biquad 2: 5 doubles (same) |
+| 0x68 | 4 floats (gains/levels?) |
+| 0x7C | u32 × 3: `128, 128, N` (TS9 N=512, Mayer N=2048) |
+| 0x88 | 128 floats (not monotonic: not a plain waveshaper table) + N floats, rest zero-padded |
 
-## Open
-- torch / `neural-amp-modeler` not installed on the Mac yet (venv inside the repo).
-- Does the pedal run A1 standard / A2 full `.namb` as is? If yes, distillation is only a CPU
-  saving, not a requirement. Not tested on the device.
-- Where the output lives: `ampero2 nam-distill IN.nam OUT.nam` in this repo.
+Reading: a block model (EQ → small nonlinear part of 128 params → N-tap FIR → EQ),
+orders of magnitude smaller than a NAM WaveNet. Semantics of the 128 params and the
+4 floats are **not established**.
+
+## How a conversion would work
+Not a weight copy (different architecture). Use the NAM as a black box: run it offline
+over a test signal, then fit the .clo parameters to that output. Needs first:
+1. the .clo inference (what the 128 params and the FIR do) — from the pedal by black-box
+   probing (upload altered .clo, re-amp, measure) or from firmware;
+2. then the fitter `ampero2 nam-to-clo IN.nam OUT.clo`.
