@@ -1,9 +1,15 @@
 ---
 tags: [hotone-ampero-2, learnings]
 created: 2026-09-18
-updated: 2026-09-20
+updated: 2026-09-28
 source: claude-code-sessions
 ---
+
+## 2026-09-28 — The editor's NAM converter already takes the lite submodel of an A2 file
+
+- **Gotcha / invariant:** a NAM A2 file is a `SlimmableContainer` with submodels (measured on `marshall_1959_slp_dookie_mod_ch1_gain_3_oclock_a2.nam`: sub 0 = WaveNet 3 channels, 1871 weights, `max_value 0.5`; sub 1 = 8 channels, 12146 weights). `convertNamToNamb` on the container gives a 7980-byte `.namb` **byte-identical** to converting sub 0 alone: the pedal gets the lite model, never the full one. The converter also accepts plain A1 WaveNets and LSTM: A1 lite (8,4) → 12.5 KB, A1 standard (16,8) → 55.6 KB, 32-channel → 360 KB, A2 sub 1 extracted as a plain WaveNet → 49 KB, LSTM 1x16 → 4.9 KB (header `BMAN`).
+- **Why it matters:** "convert full to lite" needs no tool of ours for A2 files; the editor does it. Uploading the full A2 (sub 1 extracted) or an A1 standard means a bigger `.namb`; whether the pedal accepts and runs those sizes was **not tested** on the device.
+- **Applies to:** `ampero2 nam-upload`, `ampero2/namb.py`, any flow that picks a NAM for the pedal.
 
 ## 2026-09-20 — Input source `usb34` is borrowed state, restored in code not in docs
 
