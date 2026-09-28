@@ -198,6 +198,13 @@ def main(argv: list[str] | None = None) -> int:
     if cmd in OFFLINE:
         return _offline(cmd, args)
     with Ampero() as dev:
+        if _writes_edit_buffer(cmd, args):
+            scene = _current_scene(dev)
+            if scene != 1:
+                print(f"ampero2 {cmd}: the pedal is on scene {scene}. The firmware asserts "
+                      f"'SceneNum == SCENE_1' on an edit outside scene 1 and must be restarted. "
+                      f"Run `ampero2 scene 1` first.", file=sys.stderr)
+                return 4
         if cmd == "patches":
             for i, name in enumerate(patch_names(decode_reply(dev.request_dump(msg_query_inventory("patches"))))):
                 print(f"{patch_label(i):7s} {name}")
@@ -372,6 +379,25 @@ def main(argv: list[str] | None = None) -> int:
             print(__doc__)
             return 2
     return 0
+
+
+# Edits of the edit buffer. On scene 2-5 the firmware (v1.7.0) halts with "Record the error and
+# restart: SceneNum == SCENE_1, PresetInterface.c:2279" (seen twice on 28/09/2026). `reamp`
+# writes the input source, so it is an edit too.
+SCENE1_ONLY = {"param", "model", "powers", "save", "scene-name", "tempo", "volume", "quick-access", "exp",
+               "footswitches", "patch-midi-set", "template-load", "template-save", "reamp"}
+
+
+def _writes_edit_buffer(cmd: str, args: list[str]) -> bool:
+    if cmd == "input-source":
+        return bool(args) and args[0] in INPUT_SOURCES
+    if cmd == "footswitches":
+        return bool(args)
+    return cmd in SCENE1_ONLY
+
+
+def _current_scene(dev) -> int:
+    return dev.request(msg_query_scene()).payload[SCENE_REPLY_INDEX] + 1
 
 
 def _patch_midi_msg(args: list[str]) -> bytes:

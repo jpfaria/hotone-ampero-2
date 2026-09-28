@@ -19,6 +19,13 @@ class FakeAmpero:
     def __exit__(self, *a):
         return False
 
+    def request(self, frame, timeout=1.0):     # the scene-1 guard asks the scene: scene 1
+        class F:
+            pass
+        f = F()
+        f.payload = bytes(cli.SCENE_REPLY_INDEX + 8)
+        return f
+
 
 class FakePort:
     def __init__(self, initial="input"):
