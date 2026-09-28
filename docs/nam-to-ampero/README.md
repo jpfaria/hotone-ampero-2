@@ -26,3 +26,8 @@ over a test signal, then fit the .clo parameters to that output. Needs first:
 1. the .clo inference (what the 128 params and the FIR do) — from the pedal by black-box
    probing (upload altered .clo, re-amp, measure) or from firmware;
 2. then the fitter `ampero2 nam-to-clo IN.nam OUT.clo`.
+
+## Decision (2026-09-28): shelved
+João only wants it if the result is identical to the NAM. A .clo has far fewer parameters
+and a simpler structure than a WaveNet, so a fit is an approximation by construction: it
+cannot be identical. Not pursued.
